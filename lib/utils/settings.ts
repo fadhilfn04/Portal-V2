@@ -8,7 +8,7 @@ export interface SiteSettings {
   enable_comments:           boolean
   require_comment_approval:  boolean
   enable_whatsapp:           boolean
-  whatsapp_gateway:          'manual' | 'waha' | 'whapi' | 'meta'
+  whatsapp_gateway:          'manual' | 'fonnte' | 'waha' | 'whapi' | 'meta'
   hero_article_id:           string | null
   featured_count:            number
 }
@@ -32,8 +32,9 @@ export async function getSettings(): Promise<SiteSettings> {
 
   const map: Record<string, unknown> = {}
   for (const row of data ?? []) {
-    // Supabase returns JSONB columns already parsed as JS primitives/objects
-    map[row.key] = row.value
+    // Supabase returns JSONB as JS primitives. Older rows saved via JSON.stringify
+    // come back as strings like `"false"` — try to parse, fall back to raw value.
+    map[row.key] = typeof row.value === 'string' ? parseJsonSafe(row.value) : row.value
   }
 
   return {
@@ -56,6 +57,9 @@ export async function getSetting<K extends keyof SiteSettings>(key: K): Promise<
 }
 
 // ── helpers ────────────────────────────────────────────────────
+function parseJsonSafe(s: string): unknown {
+  try { return JSON.parse(s) } catch { return s }
+}
 function bool(v: unknown, fallback: boolean): boolean {
   if (v === null || v === undefined) return fallback
   return Boolean(v)

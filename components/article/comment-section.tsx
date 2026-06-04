@@ -20,16 +20,21 @@ export function CommentSection({
   articleId,
   initialComments    = [],
   totalComments      = 0,
-  enableComments     = true,
+  enableComments     = false,
   requireApproval    = true,
 }: CommentSectionProps) {
-  const [comments, setComments]         = useState<Comment[]>(initialComments)
-  const [showForm, setShowForm]         = useState(false)
+  const [comments, setComments]           = useState<Comment[]>(initialComments)
+  const [displayTotal, setDisplayTotal]   = useState(totalComments)
+  const [showForm, setShowForm]           = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [page, setPage]                 = useState(1)
-  const [hasMore, setHasMore]           = useState(comments.length < totalComments)
+  const [page, setPage]                   = useState(1)
+  const [hasMore, setHasMore]             = useState(initialComments.length < totalComments)
 
-  const handleNewComment = () => {
+  const handleNewComment = (newComment?: Comment) => {
+    if (newComment) {
+      setComments((prev) => [newComment, ...prev])
+      setDisplayTotal((t) => t + 1)
+    }
     setShowForm(false)
   }
 
@@ -57,7 +62,7 @@ export function CommentSection({
         <h2 className="flex items-center gap-2.5 text-xl font-bold text-neutral-900 font-heading">
           <MessageCircle size={22} className="text-brand-600" />
           Komentar
-          <span className="text-base font-normal text-neutral-400">({totalComments})</span>
+          <span className="text-base font-normal text-neutral-400">({displayTotal})</span>
         </h2>
 
         {/* Only show "Tulis Komentar" button when comments are enabled */}

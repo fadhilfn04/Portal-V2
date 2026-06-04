@@ -6,11 +6,12 @@ import { Send, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { commentSchema, type CommentFormData } from '@/lib/validations/comment'
 import { cn } from '@/lib/utils/cn'
+import type { Comment } from '@/lib/types'
 
 interface CommentFormProps {
   articleId:       string
   requireApproval?: boolean
-  onSuccess?:      () => void
+  onSuccess?:      (newComment?: Comment) => void
 }
 
 export function CommentForm({ articleId, requireApproval = true, onSuccess }: CommentFormProps) {
@@ -39,7 +40,7 @@ export function CommentForm({ articleId, requireApproval = true, onSuccess }: Co
         : 'Komentar berhasil dikirim dan langsung tampil!'
       toast.success(msg)
       reset()
-      onSuccess?.()
+      onSuccess?.(data.requires_approval ? undefined : (data.data as Comment))
     } catch (error: any) {
       toast.error(error?.message ?? 'Gagal mengirim komentar. Silakan coba lagi.')
     }

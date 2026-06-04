@@ -1,38 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { generateBroadcastMessage, sendWhatsAppMessages } from '@/lib/utils/whatsapp'
 import { z } from 'zod'
 
 const broadcastSchema = z.object({
   article_id: z.string().uuid(),
-  gateway: z.enum(['manual', 'waha', 'whapi', 'meta']).default('manual'),
+  gateway: z.enum(['manual', 'fonnte', 'waha', 'whapi', 'meta']).default('manual'),
   scheduled_at: z.string().optional(),
 })
-
-// Generate WhatsApp message template from article
-function generateBroadcastMessage(article: {
-  title: string
-  excerpt?: string | null
-  slug: string
-  category_name?: string | null
-}): string {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://portal.peduatel.id'
-  const articleUrl = `${siteUrl}/artikel/${article.slug}`
-
-  return [
-    '📢 *Berita Terbaru PeduaTel*',
-    '',
-    `*${article.title}*`,
-    '',
-    article.excerpt ? article.excerpt.slice(0, 200) + (article.excerpt.length > 200 ? '…' : '') : '',
-    '',
-    `📖 Baca Selengkapnya:`,
-    articleUrl,
-    '',
-    '_Portal PeduaTel — Persatuan Pensiunan Telekomunikasi Indonesia_',
-  ]
-    .filter((line) => line !== undefined)
-    .join('\n')
-}
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -75,6 +50,14 @@ export async function POST(req: NextRequest) {
     .select('id', { count: 'exact' })
     .eq('is_active', true)
 
+  // Fetch subscriber list for actual sending
+  const { data: subscribers } = await supabase
+    .from('whatsapp_subscribers')
+    .select('phone_number')
+    .eq('is_active', true)
+
+  const isManual = gateway === 'manual'
+
   // Create broadcast log
   const { data: broadcastLog, error } = await supabase
     .from('broadcast_logs')
@@ -82,7 +65,7 @@ export async function POST(req: NextRequest) {
       article_id,
       message: messageTemplate,
       message_template: messageTemplate,
-      status: 'queued',
+      status: isManual ? 'queued' : 'processing',
       recipient_count: recipientCount ?? 0,
       gateway,
       scheduled_at: scheduled_at ?? null,
@@ -93,20 +76,27 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // If gateway is 'manual', keep as queued — admin copies the message manually
-  // For other gateways, this is where you'd call the WhatsApp API:
-  //
-  // switch (gateway) {
-  //   case 'waha':
-  //     await sendViaWAHA(messageTemplate, subscribers)
-  //     break
-  //   case 'whapi':
-  //     await sendViaWhapi(messageTemplate, subscribers)
-  //     break
-  //   case 'meta':
-  //     await sendViaMetaBusiness(messageTemplate, subscribers)
-  //     break
-  // }
+  // For non-manual gateways, send immediately and update log
+  let sentCount = 0
+  let failedCount = 0
+  if (!isManual && subscribers?.length) {
+    const result = await sendWhatsAppMessages(subscribers, messageTemplate, gateway)
+    sentCount = result.sentCount
+    failedCount = result.failedCount
+
+    await supabase
+      .from('broadcast_logs')
+      .update({
+        status: result.failedCount === subscribers.length ? 'failed' : 'sent',
+        sent_count: result.sentCount,
+        failed_count: result.failedCount,
+        sent_at: new Date().toISOString(),
+        ...(result.errors.length > 0 && {
+          error_message: result.errors.slice(0, 10).join('; '),
+        }),
+      })
+      .eq('id', broadcastLog.id)
+  }
 
   // Audit log
   await supabase.from('audit_logs').insert({
@@ -122,7 +112,9 @@ export async function POST(req: NextRequest) {
       broadcast_id: broadcastLog.id,
       message_template: messageTemplate,
       recipient_count: recipientCount ?? 0,
-      status: broadcastLog.status,
+      status: isManual ? 'queued' : (failedCount === (subscribers?.length ?? 0) ? 'failed' : 'sent'),
+      sent_count: sentCount,
+      failed_count: failedCount,
     },
   })
 }

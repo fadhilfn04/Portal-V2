@@ -18,7 +18,7 @@ const settingsSchema = z.object({
   enable_comments:           z.boolean().default(true),
   require_comment_approval:  z.boolean().default(true),
   enable_whatsapp:           z.boolean().default(false),
-  whatsapp_gateway:          z.enum(['manual', 'waha', 'whapi', 'meta']).default('manual'),
+  whatsapp_gateway:          z.enum(['manual', 'fonnte', 'waha', 'whapi', 'meta']).default('manual'),
 })
 
 type SettingsForm = z.infer<typeof settingsSchema>
@@ -29,9 +29,11 @@ async function fetchSettings(): Promise<SettingsForm> {
 
   const map: Record<string, unknown> = {}
   for (const row of data ?? []) {
-    map[row.key] = typeof row.value === 'string'
-      ? JSON.parse(row.value)
-      : row.value
+    if (typeof row.value === 'string') {
+      try { map[row.key] = JSON.parse(row.value) } catch { map[row.key] = row.value }
+    } else {
+      map[row.key] = row.value
+    }
   }
 
   return {
@@ -50,7 +52,7 @@ async function saveSettings(values: SettingsForm) {
   const supabase = createClient()
   const upserts = Object.entries(values).map(([key, value]) => ({
     key,
-    value: JSON.stringify(value),
+    value,
     updated_at: new Date().toISOString(),
   }))
   const { error } = await supabase.from('site_settings').upsert(upserts, { onConflict: 'key' })
@@ -175,12 +177,13 @@ export default function PengaturanPage() {
           <Field label="Gateway WhatsApp">
             <select {...register('whatsapp_gateway')} className={inputClass()}>
               <option value="manual">Manual (Salin & Tempel)</option>
-              <option value="waha">WAHA API</option>
+              <option value="fonnte">Fonnte.com (Recommended)</option>
+              <option value="waha">WAHA API (Self-hosted)</option>
               <option value="whapi">Whapi.cloud</option>
               <option value="meta">Meta WhatsApp Business</option>
             </select>
             <p className="text-xs text-amber-600 mt-1.5">
-              ⚠️ Selain Manual, gateway lain membutuhkan konfigurasi tambahan di environment variables.
+              ⚠️ Selain Manual, gateway lain membutuhkan env var <code className="px-1 bg-amber-100 rounded">WHATSAPP_API_KEY</code> di Vercel.
             </p>
           </Field>
         )}

@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { articleSchema } from '@/lib/validations/article'
 import { generateSlug } from '@/lib/utils/slug'
 import { calculateReadingTime } from '@/lib/utils/reading-time'
+import { getSettings } from '@/lib/utils/settings'
+import { autoBroadcast } from '@/lib/utils/whatsapp'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -102,6 +104,14 @@ export async function POST(req: NextRequest) {
     resource_id: article.id,
     details: { title: article.title, status: article.status },
   })
+
+  // Auto-broadcast if article is published and WhatsApp is enabled
+  if (article.status === 'published') {
+    const settings = await getSettings()
+    if (settings.enable_whatsapp) {
+      autoBroadcast(article, profile.id, settings.whatsapp_gateway).catch(() => {})
+    }
+  }
 
   return NextResponse.json({ data: article }, { status: 201 })
 }

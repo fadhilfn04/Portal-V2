@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { articleSchema } from '@/lib/validations/article'
 import { calculateReadingTime } from '@/lib/utils/reading-time'
+import { getSettings } from '@/lib/utils/settings'
+import { autoBroadcast } from '@/lib/utils/whatsapp'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -49,6 +51,13 @@ export async function PUT(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: parsed.error.issues }, { status: 400 })
   }
 
+  // Capture old status to detect publish event
+  const { data: existing } = await supabase
+    .from('articles')
+    .select('status')
+    .eq('id', id)
+    .single()
+
   const { tags, ...articleData } = parsed.data
   const readingTime = body.reading_time ?? calculateReadingTime(articleData.content)
 
@@ -86,6 +95,15 @@ export async function PUT(req: NextRequest, { params }: Params) {
     resource_id: id,
     details: { title: article.title, status: article.status },
   })
+
+  // Auto-broadcast only when status transitions to published for the first time
+  const justPublished = article.status === 'published' && existing?.status !== 'published'
+  if (justPublished) {
+    const settings = await getSettings()
+    if (settings.enable_whatsapp) {
+      autoBroadcast(article, user.id, settings.whatsapp_gateway).catch(() => {})
+    }
+  }
 
   return NextResponse.json({ data: article })
 }

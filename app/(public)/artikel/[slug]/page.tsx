@@ -271,6 +271,8 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
               articleId={article.id}
               initialComments={comments}
               totalComments={article.comment_count}
+              enableComments={settings.enable_comments}
+              requireApproval={settings.require_comment_approval}
             />
           </div>
 
