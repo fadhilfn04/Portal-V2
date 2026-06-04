@@ -1,0 +1,502 @@
+@import "tailwindcss";
+
+/* ================================================================
+   PORTAL PEDUATEL — Design System
+   "Apple meets Medium meets Linear"
+   ================================================================ */
+
+@theme {
+  /* ── Typography ─────────────────────────────────────────── */
+  --font-sans:    'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+
+  /* ── Brand Colors ───────────────────────────────────────── */
+  /* Primary: Telkom Navy — trust, heritage, authority */
+  --color-brand-50:   #f0f5ff;
+  --color-brand-100:  #e1eaff;
+  --color-brand-200:  #c3d5ff;
+  --color-brand-300:  #93b3ff;
+  --color-brand-400:  #5d88ff;
+  --color-brand-500:  #3461ff;
+  --color-brand-600:  #1a3c6e;   /* Primary — Telkom Navy */
+  --color-brand-700:  #152f58;
+  --color-brand-800:  #0f2242;
+  --color-brand-900:  #08142a;
+  --color-brand-950:  #04091a;
+
+  /* Accent: Telkom Red — energy, action, importance */
+  --color-accent-50:  #fff1f2;
+  --color-accent-100: #ffe0e3;
+  --color-accent-200: #ffc6cb;
+  --color-accent-300: #ff9aa3;
+  --color-accent-400: #ff5d6c;
+  --color-accent-500: #e31837;   /* Primary Red */
+  --color-accent-600: #c01530;
+  --color-accent-700: #9b1126;
+  --color-accent-800: #7a0e1e;
+  --color-accent-900: #5c0b17;
+
+  /* ── Neutral ─────────────────────────────────────────────── */
+  --color-neutral-0:   #ffffff;
+  --color-neutral-25:  #fafafa;
+  --color-neutral-50:  #f7f8fa;
+  --color-neutral-100: #f0f2f5;
+  --color-neutral-150: #e9ebf0;
+  --color-neutral-200: #e2e5eb;
+  --color-neutral-300: #cdd2dc;
+  --color-neutral-400: #9aa3b5;
+  --color-neutral-500: #6b7591;
+  --color-neutral-600: #4e566c;
+  --color-neutral-700: #363d52;
+  --color-neutral-800: #22273a;
+  --color-neutral-900: #141824;
+  --color-neutral-950: #0c0f18;
+
+  /* ── Semantic ─────────────────────────────────────────────── */
+  --color-success-50:  #f0fdf4;
+  --color-success-500: #22c55e;
+  --color-success-600: #16a34a;
+
+  --color-warning-50:  #fffbeb;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+
+  --color-error-50:    #fef2f2;
+  --color-error-500:   #ef4444;
+  --color-error-600:   #dc2626;
+
+  --color-info-50:     #eff6ff;
+  --color-info-500:    #3b82f6;
+  --color-info-600:    #2563eb;
+
+  /* ── Category Colors ─────────────────────────────────────── */
+  --color-cat-pusat:    #1a3c6e;
+  --color-cat-daerah:   #0284c7;
+  --color-cat-kegiatan: #059669;
+  --color-cat-kesehatan:#d97706;
+  --color-cat-olahraga: #dc2626;
+  --color-cat-sosial:   #7c3aed;
+  --color-cat-dapen:    #db2777;
+  --color-cat-pengumum: #ea580c;
+
+  /* ── Spacing ─────────────────────────────────────────────── */
+  --spacing-18: 4.5rem;
+  --spacing-22: 5.5rem;
+  --spacing-30: 7.5rem;
+  --spacing-128: 32rem;
+
+  /* ── Border Radius ───────────────────────────────────────── */
+  --radius-xs:   0.25rem;
+  --radius-sm:   0.375rem;
+  --radius:      0.625rem;
+  --radius-md:   0.75rem;
+  --radius-lg:   1rem;
+  --radius-xl:   1.25rem;
+  --radius-2xl:  1.5rem;
+  --radius-3xl:  2rem;
+  --radius-full: 9999px;
+
+  /* ── Shadows ─────────────────────────────────────────────── */
+  --shadow-xs:  0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm:  0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow:     0 4px 8px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06);
+  --shadow-md:  0 8px 16px -4px rgb(0 0 0 / 0.09), 0 4px 6px -4px rgb(0 0 0 / 0.07);
+  --shadow-lg:  0 16px 32px -8px rgb(0 0 0 / 0.10), 0 8px 16px -8px rgb(0 0 0 / 0.06);
+  --shadow-xl:  0 24px 48px -12px rgb(0 0 0 / 0.12);
+  --shadow-2xl: 0 40px 64px -16px rgb(0 0 0 / 0.14);
+
+  /* ── Transitions ─────────────────────────────────────────── */
+  --ease-spring:  cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth:  cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in-out:  cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Z-index ─────────────────────────────────────────────── */
+  --z-dropdown:  100;
+  --z-sticky:    200;
+  --z-overlay:   300;
+  --z-modal:     400;
+  --z-toast:     500;
+
+  /* ── Article Typography Scale ────────────────────────────── */
+  --text-article-xs:   0.875rem;   /* 14px */
+  --text-article-sm:   1rem;       /* 16px */
+  --text-article-base: 1.125rem;   /* 18px — body for readability */
+  --text-article-lg:   1.25rem;    /* 20px */
+  --text-article-xl:   1.5rem;     /* 24px — h3 */
+  --text-article-2xl:  1.875rem;   /* 30px — h2 */
+  --text-article-3xl:  2.25rem;    /* 36px — h1 */
+}
+
+/* ================================================================
+   BASE STYLES
+   ================================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+  font-size: 16px; /* Base for rem calculations */
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-neutral-25);
+  color: var(--color-neutral-900);
+  line-height: 1.6;
+  min-height: 100dvh;
+}
+
+/* Focus styles — accessible but not intrusive */
+:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+/* Selection color */
+::selection {
+  background-color: color-mix(in oklch, var(--color-brand-600) 20%, transparent);
+  color: var(--color-brand-900);
+}
+
+/* Smooth image rendering */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ================================================================
+   TYPOGRAPHY SCALE
+   ================================================================ */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  color: var(--color-neutral-900);
+}
+
+/* ================================================================
+   ARTICLE CONTENT — Medium-quality reading experience
+   ================================================================ */
+
+.prose-peduatel {
+  font-family: var(--font-sans);
+  font-size: var(--text-article-base);
+  line-height: 1.85;
+  color: var(--color-neutral-800);
+  max-width: 720px;
+}
+
+.prose-peduatel h1 {
+  font-family: var(--font-heading);
+  font-size: var(--text-article-3xl);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: var(--color-neutral-950);
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.prose-peduatel h2 {
+  font-family: var(--font-heading);
+  font-size: var(--text-article-2xl);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--color-neutral-900);
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 2px solid var(--color-neutral-100);
+}
+
+.prose-peduatel h3 {
+  font-family: var(--font-heading);
+  font-size: var(--text-article-xl);
+  font-weight: 700;
+  color: var(--color-neutral-900);
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-peduatel p {
+  margin-bottom: 1.4rem;
+}
+
+.prose-peduatel a {
+  color: var(--color-brand-600);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: color 0.15s ease;
+}
+
+.prose-peduatel a:hover {
+  color: var(--color-accent-500);
+}
+
+.prose-peduatel strong {
+  font-weight: 700;
+  color: var(--color-neutral-900);
+}
+
+.prose-peduatel em {
+  font-style: italic;
+  color: var(--color-neutral-700);
+}
+
+.prose-peduatel blockquote {
+  border-left: 4px solid var(--color-brand-600);
+  margin-left: 0;
+  padding-left: 1.5rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  background-color: var(--color-brand-50);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-style: italic;
+  color: var(--color-brand-700);
+}
+
+.prose-peduatel ul, .prose-peduatel ol {
+  padding-left: 1.75rem;
+  margin-bottom: 1.4rem;
+}
+
+.prose-peduatel li {
+  margin-bottom: 0.4rem;
+}
+
+.prose-peduatel img {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-md);
+}
+
+.prose-peduatel hr {
+  border: none;
+  border-top: 2px solid var(--color-neutral-150);
+  margin: 2.5rem 0;
+}
+
+.prose-peduatel pre {
+  background-color: var(--color-neutral-900);
+  color: var(--color-neutral-100);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1.5rem;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  margin-bottom: 1.4rem;
+}
+
+.prose-peduatel code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background-color: var(--color-neutral-100);
+  color: var(--color-accent-600);
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-xs);
+}
+
+.prose-peduatel pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+}
+
+.prose-peduatel table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.4rem;
+  font-size: 0.95rem;
+}
+
+.prose-peduatel th {
+  background-color: var(--color-neutral-100);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--color-neutral-200);
+}
+
+.prose-peduatel td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-neutral-150);
+}
+
+.prose-peduatel tr:last-child td {
+  border-bottom: none;
+}
+
+/* ================================================================
+   ANIMATIONS
+   ================================================================ */
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.8; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in-up  { animation: fade-in-up 0.5s var(--ease-smooth) forwards; }
+.animate-fade-in     { animation: fade-in 0.3s ease forwards; }
+.animate-slide-right { animation: slide-in-right 0.4s var(--ease-smooth) forwards; }
+
+/* ================================================================
+   SKELETON LOADER
+   ================================================================ */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-neutral-100) 25%,
+    var(--color-neutral-50)  50%,
+    var(--color-neutral-100) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius);
+}
+
+/* ================================================================
+   SCROLLBAR
+   ================================================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-neutral-100);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-300);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-400);
+}
+
+/* ================================================================
+   TIPTAP EDITOR
+   ================================================================ */
+
+.tiptap-editor .ProseMirror {
+  min-height: 400px;
+  padding: 1rem;
+  outline: none;
+  font-size: var(--text-article-base);
+  line-height: 1.8;
+  color: var(--color-neutral-900);
+}
+
+.tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--color-neutral-400);
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+.tiptap-editor .ProseMirror:focus {
+  outline: none;
+}
+
+/* ================================================================
+   UTILITY CLASSES
+   ================================================================ */
+
+.text-balance { text-wrap: balance; }
+.text-pretty  { text-wrap: pretty; }
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Glass morphism effect for overlays */
+.glass {
+  background: rgb(255 255 255 / 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgb(255 255 255 / 0.3);
+}
+
+/* Card hover lift effect */
+.card-hover {
+  transition: transform 0.2s var(--ease-smooth), box-shadow 0.2s var(--ease-smooth);
+}
+
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Reading progress bar */
+#reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--color-brand-600),
+    var(--color-accent-500)
+  );
+  transition: width 0.1s linear;
+  z-index: 9999;
+}
