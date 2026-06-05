@@ -101,7 +101,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
   if (justPublished) {
     const settings = await getSettings()
     if (settings.enable_whatsapp) {
-      autoBroadcast(article, user.id, settings.whatsapp_gateway).catch(() => {})
+      await autoBroadcast(article, user.id, settings.whatsapp_gateway)
+        .catch((err) => console.error('[broadcast] error:', err))
     }
   }
 

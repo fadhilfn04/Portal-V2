@@ -109,7 +109,8 @@ export async function POST(req: NextRequest) {
   if (article.status === 'published') {
     const settings = await getSettings()
     if (settings.enable_whatsapp) {
-      autoBroadcast(article, profile.id, settings.whatsapp_gateway).catch(() => {})
+      await autoBroadcast(article, profile.id, settings.whatsapp_gateway)
+        .catch((err) => console.error('[broadcast] error:', err))
     }
   }
 
