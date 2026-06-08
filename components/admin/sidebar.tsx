@@ -6,13 +6,13 @@ import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Newspaper, Tag, MessageSquare,
   Send, BarChart3, Settings, LogOut, ExternalLink,
-  ChevronRight, Bell,
+  ClipboardCheck,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils/cn'
 
-const NAV_ITEMS = [
+const BASE_NAV = [
   {
     group: 'Menu Utama',
     items: [
@@ -37,7 +37,11 @@ const NAV_ITEMS = [
   },
 ]
 
-export function AdminSidebar() {
+interface AdminSidebarProps {
+  userRole?: string
+}
+
+export function AdminSidebar({ userRole }: AdminSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -52,6 +56,18 @@ export function AdminSidebar() {
     if (exact) return pathname === href
     return pathname.startsWith(href)
   }
+
+  // Inject approval link for super_admin under Menu Utama
+  const navItems = BASE_NAV.map((group) => {
+    if (group.group !== 'Menu Utama' || userRole !== 'super_admin') return group
+    return {
+      ...group,
+      items: [
+        ...group.items,
+        { label: 'Persetujuan', href: '/admin/approval', icon: ClipboardCheck, exact: false },
+      ],
+    }
+  })
 
   return (
     <aside className="flex h-full w-64 flex-col bg-brand-950 text-white">
@@ -81,7 +97,7 @@ export function AdminSidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-2 overflow-y-auto">
-        {NAV_ITEMS.map((group) => (
+        {navItems.map((group) => (
           <div key={group.group} className="mb-5">
             <p className="px-3 mb-1.5 text-[10px] font-bold text-white/40 uppercase tracking-widest">
               {group.group}

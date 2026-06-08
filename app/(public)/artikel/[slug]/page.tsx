@@ -9,6 +9,7 @@ import { CategoryBadge } from '@/components/shared/category-badge'
 import { LikeButton } from '@/components/article/like-button'
 import { ShareButtons } from '@/components/article/share-buttons'
 import { CommentSection } from '@/components/article/comment-section'
+import { PhotoCollage } from '@/components/article/image-gallery'
 import { ArticleCard } from '@/components/article/article-card'
 import { formatDate, formatRelative } from '@/lib/utils/format-date'
 import type { ArticleWithRelations, Comment, ArticleListItem } from '@/lib/types'
@@ -194,19 +195,13 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
               </div>
             </header>
 
-            {/* Cover image */}
-            {article.cover_image && (
-              <div className="relative aspect-[16/9] mb-8 rounded-2xl overflow-hidden shadow-lg">
-                <Image
-                  src={article.cover_image}
-                  alt={article.cover_image_alt ?? article.title}
-                  fill
-                  priority
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 100vw, 800px"
-                />
-              </div>
-            )}
+            {/* Photos — collage if gallery uploaded, fallback to single cover */}
+            {(() => {
+              const gallery: string[] = Array.isArray((article as any).gallery_images) && (article as any).gallery_images.length > 0
+                ? (article as any).gallery_images
+                : article.cover_image ? [article.cover_image] : []
+              return gallery.length > 0 ? <PhotoCollage images={gallery} /> : null
+            })()}
 
             {/* Article content */}
             <div

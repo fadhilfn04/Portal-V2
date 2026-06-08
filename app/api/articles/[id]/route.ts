@@ -61,12 +61,20 @@ export async function PUT(req: NextRequest, { params }: Params) {
   const { tags, ...articleData } = parsed.data
   const readingTime = body.reading_time ?? calculateReadingTime(articleData.content)
 
+  // Non-super_admin cannot publish directly — route through approval
+  const effectiveStatus =
+    articleData.status === 'published' && profile.role !== 'super_admin'
+      ? 'pending_review'
+      : articleData.status
+
   const { data: article, error } = await supabase
     .from('articles')
     .update({
       ...articleData,
+      status: effectiveStatus,
+      rejection_reason: null, // clear any prior rejection when re-submitting
       reading_time: readingTime,
-      published_at: articleData.status === 'published'
+      published_at: effectiveStatus === 'published'
         ? articleData.published_at || new Date().toISOString()
         : null,
       updated_at: new Date().toISOString(),
@@ -97,7 +105,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
   })
 
   // Auto-broadcast only when status transitions to published for the first time
-  const justPublished = article.status === 'published' && existing?.status !== 'published'
+  const justPublished = article.status === 'published' && !['published'].includes(existing?.status ?? '')
   if (justPublished) {
     const settings = await getSettings()
     if (settings.enable_whatsapp) {

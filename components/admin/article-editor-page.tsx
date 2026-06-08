@@ -22,6 +22,7 @@ import { articleSchema, type ArticleFormData } from '@/lib/validations/article'
 import { generateSlug } from '@/lib/utils/slug'
 import { calculateReadingTime } from '@/lib/utils/reading-time'
 import { cn } from '@/lib/utils/cn'
+import { ArticlePhotoUploader } from '@/components/admin/gallery-uploader'
 
 interface Category {
   id: string
@@ -31,15 +32,17 @@ interface Category {
 
 interface ArticleEditorPageProps {
   categories: Category[]
-  article?: Partial<ArticleFormData> & { id?: string }
+  article?: Partial<ArticleFormData> & { id?: string; rejection_reason?: string | null }
+  userRole?: string
 }
 
-export function ArticleEditorPage({ categories, article }: ArticleEditorPageProps) {
+export function ArticleEditorPage({ categories, article, userRole }: ArticleEditorPageProps) {
   const router = useRouter()
   const [isSaving, setIsSaving] = useState(false)
   const [tagInput, setTagInput] = useState('')
   const [readingTime, setReadingTime] = useState(1)
   const isEditing = !!article?.id
+  const isSuperAdmin = userRole === 'super_admin'
 
   const {
     register,
@@ -65,6 +68,7 @@ export function ArticleEditorPage({ categories, article }: ArticleEditorPageProp
       meta_title: article?.meta_title ?? '',
       meta_description: article?.meta_description ?? '',
       published_at: article?.published_at ?? new Date().toISOString().slice(0, 16),
+      gallery_images: (article as any)?.gallery_images ?? [],
     },
   })
 
@@ -121,10 +125,16 @@ export function ArticleEditorPage({ categories, article }: ArticleEditorPageProp
       const endpoint = isEditing ? `/api/articles/${article!.id}` : '/api/articles'
       const method = isEditing ? 'PUT' : 'POST'
 
+      const payload = {
+        ...values,
+        reading_time: readingTime,
+        cover_image: values.gallery_images?.[0] ?? values.cover_image ?? '',
+      }
+
       const res = await fetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...values, reading_time: readingTime }),
+        body: JSON.stringify(payload),
       })
 
       const data = await res.json()
@@ -184,9 +194,14 @@ export function ArticleEditorPage({ categories, article }: ArticleEditorPageProp
               Status:{' '}
               <span className={cn(
                 'font-semibold',
-                status === 'published' ? 'text-success-600' : 'text-amber-600'
+                status === 'published' ? 'text-success-600'
+                  : status === 'pending_review' ? 'text-amber-600'
+                  : 'text-neutral-500'
               )}>
-                {status === 'published' ? 'Terbit' : status === 'archived' ? 'Diarsipkan' : 'Draf'}
+                {status === 'published' ? 'Terbit'
+                  : status === 'pending_review' ? 'Menunggu Persetujuan'
+                  : status === 'archived' ? 'Diarsipkan'
+                  : 'Draf'}
               </span>
             </p>
           </div>
@@ -214,15 +229,27 @@ export function ArticleEditorPage({ categories, article }: ArticleEditorPageProp
             disabled={isSaving}
             className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white rounded-xl transition-colors shadow-sm"
           >
-            {isSaving ? (
-              <Loader2 size={15} className="animate-spin" />
-            ) : (
-              <Send size={15} />
-            )}
-            {isEditing ? 'Perbarui' : 'Terbitkan'}
+            {isSaving ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+            {isSuperAdmin
+              ? (isEditing ? 'Perbarui & Terbitkan' : 'Terbitkan')
+              : (isEditing ? 'Ajukan Perubahan' : 'Ajukan untuk Disetujui')}
           </button>
         </div>
       </div>
+
+      {/* Rejection notice */}
+      {article?.rejection_reason && (
+        <div className="flex gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl">
+          <div className="shrink-0 mt-0.5 text-red-500">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm.75 4.25a.75.75 0 0 0-1.5 0v3.5a.75.75 0 0 0 1.5 0v-3.5zm-.75 6a.875.875 0 1 0 0-1.75.875.875 0 0 0 0 1.75z"/></svg>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-red-800 mb-0.5">Artikel dikembalikan oleh Pusat</p>
+            <p className="text-sm text-red-700">{article.rejection_reason}</p>
+            <p className="text-xs text-red-500 mt-1">Perbaiki artikel dan ajukan kembali.</p>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Editor — 2/3 */}
@@ -263,24 +290,14 @@ export function ArticleEditorPage({ categories, article }: ArticleEditorPageProp
             />
           </div>
 
-          {/* Cover image */}
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">
-              Gambar Utama
-            </label>
-            <input
-              type="url"
-              placeholder="https://... (URL gambar)"
-              {...register('cover_image')}
-              className="w-full h-10 px-3.5 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
-            />
-            <input
-              type="text"
-              placeholder="Deskripsi gambar (alt text)"
-              {...register('cover_image_alt')}
-              className="w-full h-10 px-3.5 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
-            />
-          </div>
+          {/* Photo uploader */}
+          <Controller
+            name="gallery_images"
+            control={control}
+            render={({ field }) => (
+              <ArticlePhotoUploader value={field.value ?? []} onChange={field.onChange} />
+            )}
+          />
 
           {/* TipTap Editor */}
           <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
@@ -469,6 +486,7 @@ export function ArticleEditorPage({ categories, article }: ArticleEditorPageProp
               ))}
             </div>
           </div>
+
 
           {/* SEO */}
           <div className="bg-white rounded-2xl border border-neutral-150 p-5 space-y-3">

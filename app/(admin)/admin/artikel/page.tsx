@@ -17,14 +17,16 @@ const ITEMS_PER_PAGE = 15
 const STATUS_TABS = [
   { label: 'Semua', value: '' },
   { label: 'Terbit', value: 'published' },
+  { label: 'Menunggu', value: 'pending_review' },
   { label: 'Draf', value: 'draft' },
   { label: 'Diarsipkan', value: 'archived' },
 ]
 
 const STATUS_BADGE: Record<string, { label: string; class: string }> = {
-  published: { label: 'Terbit',      class: 'bg-green-100 text-green-700' },
-  draft:     { label: 'Draf',        class: 'bg-amber-100 text-amber-700' },
-  archived:  { label: 'Diarsipkan',  class: 'bg-neutral-100 text-neutral-500' },
+  published:      { label: 'Terbit',              class: 'bg-green-100 text-green-700' },
+  pending_review: { label: 'Menunggu Persetujuan', class: 'bg-amber-100 text-amber-700' },
+  draft:          { label: 'Draf',                class: 'bg-neutral-100 text-neutral-500' },
+  archived:       { label: 'Diarsipkan',          class: 'bg-neutral-100 text-neutral-500' },
 }
 
 export default async function ArticleListPage({ searchParams }: Props) {

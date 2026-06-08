@@ -67,15 +67,22 @@ export async function POST(req: NextRequest) {
   const slug = articleData.slug || generateSlug(articleData.title)
   const readingTime = calculateReadingTime(articleData.content)
 
+  // Non-super_admin cannot publish directly — route through approval
+  const effectiveStatus =
+    articleData.status === 'published' && profile.role !== 'super_admin'
+      ? 'pending_review'
+      : articleData.status
+
   // Insert article
   const { data: article, error } = await supabase
     .from('articles')
     .insert({
       ...articleData,
       slug,
+      status: effectiveStatus,
       reading_time: readingTime,
       author_id: profile.id,
-      published_at: articleData.status === 'published'
+      published_at: effectiveStatus === 'published'
         ? articleData.published_at || new Date().toISOString()
         : null,
     })
