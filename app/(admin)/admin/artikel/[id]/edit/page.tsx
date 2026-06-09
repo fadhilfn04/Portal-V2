@@ -51,6 +51,18 @@ export default async function EditArticlePage({ params }: Props) {
       ? new Date(article.published_at).toISOString().slice(0, 16)
       : new Date().toISOString().slice(0, 16),
     rejection_reason: article.rejection_reason ?? null,
+    // Event fields - format dates for HTML5 date inputs
+    event_date: article.event_date
+      ? new Date(article.event_date).toISOString().slice(0, 10)
+      : '',
+    event_end_date: article.event_end_date
+      ? new Date(article.event_end_date).toISOString().slice(0, 10)
+      : '',
+    event_time: article.event_time ?? '',
+    event_end_time: article.event_end_time ?? '',
+    event_location: article.event_location ?? '',
+    // Gallery images
+    gallery_images: article.gallery_images ?? [],
   }
 
   return (

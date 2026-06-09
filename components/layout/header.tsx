@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useState, useEffect, useRef } from 'react'
-import { Search, Menu, X, ChevronDown, Bell } from 'lucide-react'
+import { Search, Menu, X, ChevronDown, Bell, ExternalLink } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils/cn'
 import type { Category } from '@/lib/types'
@@ -75,9 +75,9 @@ export function Header({ categories }: HeaderProps) {
   return (
     <>
       {/* Announcement bar */}
-      <div className="bg-brand-600 text-white text-center py-2 px-4 text-sm font-medium">
+      {/* <div className="bg-brand-600 text-white text-center py-2 px-4 text-sm font-medium">
         Portal Resmi Persatuan Pensiunan Telekomunikasi Indonesia (PeduaTel)
-      </div>
+      </div> */}
 
       <header
         className={cn(
@@ -162,6 +162,17 @@ export function Header({ categories }: HeaderProps) {
 
             {/* Right actions */}
             <div className="flex items-center gap-2">
+              {/* SIPATEL Button */}
+              <a
+                href="https://sipatel.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-semibold shadow-sm hover:shadow-md hover:from-emerald-600 hover:to-teal-700 transition-all"
+              >
+                <span>SIPATEL</span>
+                <ExternalLink size={14} className="opacity-80" />
+              </a>
+
               {/* Search toggle */}
               <button
                 onClick={() => setIsSearchOpen(!isSearchOpen)}
@@ -301,6 +312,18 @@ export function Header({ categories }: HeaderProps) {
                     )}
                   </div>
                 ))}
+                {/* SIPATEL Button in mobile menu */}
+                <div className="pt-4 mt-4 border-t border-neutral-100">
+                  <a
+                    href="https://sipatel.vercel.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold shadow-sm"
+                  >
+                    <span>SIPATEL</span>
+                    <ExternalLink size={16} />
+                  </a>
+                </div>
               </nav>
             </motion.div>
           </>

@@ -16,6 +16,18 @@ export const articleSchema = z.object({
   meta_description: z.string().max(160, 'Meta description maksimal 160 karakter').optional().default(''),
   published_at: z.string().optional().default(''),
   gallery_images: z.array(z.string()).max(4, 'Maksimal 4 gambar galeri').default([]),
+  // Event fields (for Kegiatan category)
+  event_date: z.string().optional().default(''),
+  event_end_date: z.string().optional().default(''),
+  event_time: z.string().optional().default(''),
+  event_end_time: z.string().optional().default(''),
+  event_location: z.string().max(200, 'Lokasi maksimal 200 karakter').optional().default(''),
+})
+
+// Simplified schema for status-only updates
+export const articleStatusSchema = z.object({
+  status: z.enum(['draft', 'pending_review', 'published', 'archived']),
 })
 
 export type ArticleFormData = z.infer<typeof articleSchema>
+export type ArticleStatusData = z.infer<typeof articleStatusSchema>

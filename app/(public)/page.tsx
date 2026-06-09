@@ -4,6 +4,7 @@ import { HeroSection } from '@/components/home/hero-section'
 import { LatestNewsSection } from '@/components/home/latest-news-section'
 import { RegionalNewsSection } from '@/components/home/regional-news-section'
 import { PopularArticlesSection } from '@/components/home/popular-articles-section'
+import { EventsCalendarSection } from '@/components/home/events-calendar-section'
 import { CtaSection } from '@/components/home/cta-section'
 import type { ArticleListItem } from '@/lib/types'
 
@@ -16,7 +17,14 @@ export const revalidate = 300 // 5 minutes
 async function getHomepageData() {
   const supabase = await createClient()
 
-  const [featuredRes, latestRes, popularRes, regionalRes] = await Promise.all([
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth() + 1
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`
+  const lastDay = new Date(year, month, 0).getDate()
+  const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+
+  const [featuredRes, latestRes, popularRes, regionalRes, eventsRes] = await Promise.all([
     // Hero: most recent featured
     supabase
       .from('articles_with_author')
@@ -50,6 +58,16 @@ async function getHomepageData() {
       .eq('category_slug', 'berita-daerah')
       .order('published_at', { ascending: false })
       .limit(4),
+
+    // Calendar events for current month (articles with event_date set)
+    supabase
+      .from('articles_with_author')
+      .select('id,title,slug,is_featured,category_name,category_slug,category_color,event_date,event_end_date,event_time,event_end_time,event_location')
+      .eq('status', 'published')
+      .not('event_date', 'is', null)
+      .gte('event_date', startDate)
+      .lte('event_date', endDate)
+      .order('event_date', { ascending: true }),
   ])
 
   return {
@@ -58,11 +76,13 @@ async function getHomepageData() {
     latest: (latestRes.data as ArticleListItem[]) ?? [],
     popular: (popularRes.data as ArticleListItem[]) ?? [],
     regional: (regionalRes.data as ArticleListItem[]) ?? [],
+    events: (eventsRes.data as ArticleListItem[]) ?? [],
   }
 }
 
 export default async function HomePage() {
-  const { featured, featuredSecondary, latest, popular, regional } = await getHomepageData()
+  const { featured, featuredSecondary, latest, popular, regional, events } =
+    await getHomepageData()
 
   return (
     <>
@@ -75,10 +95,13 @@ export default async function HomePage() {
       {/* 3 — Paling Banyak Dibaca */}
       <PopularArticlesSection articles={popular} />
 
-      {/* 4 — Berita Daerah */}
+      {/* 4 — Kalender Kegiatan */}
+      <EventsCalendarSection initialEvents={events} />
+
+      {/* 5 — Berita Daerah */}
       <RegionalNewsSection articles={regional} />
 
-      {/* 5 — WhatsApp CTA */}
+      {/* 6 — WhatsApp CTA */}
       <CtaSection />
     </>
   )

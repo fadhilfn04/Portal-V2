@@ -16,7 +16,7 @@ import {
   Save, Send, Eye, ArrowLeft, Bold, Italic, UnderlineIcon,
   List, ListOrdered, Quote, Image as ImageIcon, Link as LinkIcon,
   AlignLeft, AlignCenter, AlignRight, Heading2, Heading3,
-  Star, X, Plus, Loader2,
+  Star, X, Plus, Loader2, Calendar, MapPin, Clock,
 } from 'lucide-react'
 import { articleSchema, type ArticleFormData } from '@/lib/validations/article'
 import { generateSlug } from '@/lib/utils/slug'
@@ -69,10 +69,15 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
       meta_description: article?.meta_description ?? '',
       published_at: article?.published_at ?? new Date().toISOString().slice(0, 16),
       gallery_images: (article as any)?.gallery_images ?? [],
+      event_date: (article as any)?.event_date ?? '',
+      event_end_date: (article as any)?.event_end_date ?? '',
+      event_time: (article as any)?.event_time ?? '',
+      event_end_time: (article as any)?.event_end_time ?? '',
+      event_location: (article as any)?.event_location ?? '',
     },
   })
 
-  const [title, tags, status] = watch(['title', 'tags', 'status'])
+  const [title, tags, status, categoryId] = watch(['title', 'tags', 'status', 'category_id'])
 
   // TipTap editor
   const editor = useEditor({
@@ -487,6 +492,77 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
             </div>
           </div>
 
+          {/* Event Settings - only show for Kegiatan category */}
+          {(() => {
+            const selectedCategory = categories.find((cat) => cat.id === categoryId)
+            const isEventCategory = selectedCategory?.name.toLowerCase() === 'kegiatan'
+            if (!isEventCategory) return null
+            return (
+              <div className="bg-white rounded-2xl border border-neutral-150 p-5 space-y-4">
+                <h3 className="text-sm font-bold text-neutral-900 font-heading flex items-center gap-2">
+                  <Calendar size={16} className="text-brand-600" />
+                  Informasi Kegiatan
+                </h3>
+
+                {/* Event Date */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Tanggal Mulai</label>
+                    <input
+                      type="date"
+                      {...register('event_date')}
+                      className="w-full h-9 px-3 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Tanggal Selesai</label>
+                    <input
+                      type="date"
+                      {...register('event_end_date')}
+                      className="w-full h-9 px-3 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Event Time */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 mb-1.5 flex items-center gap-1.5">
+                      <Clock size={14} />
+                      Waktu Mulai
+                    </label>
+                    <input
+                      type="time"
+                      {...register('event_time')}
+                      className="w-full h-9 px-3 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Waktu Selesai</label>
+                    <input
+                      type="time"
+                      {...register('event_end_time')}
+                      className="w-full h-9 px-3 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Event Location */}
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-600 mb-1.5 flex items-center gap-1.5">
+                    <MapPin size={14} />
+                    Lokasi
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Aula Serbaguna, Gedung Pusat..."
+                    {...register('event_location')}
+                    className="w-full h-9 px-3 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
+                  />
+                </div>
+              </div>
+            )
+          })()}
 
           {/* SEO */}
           <div className="bg-white rounded-2xl border border-neutral-150 p-5 space-y-3">

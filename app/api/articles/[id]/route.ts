@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { articleSchema } from '@/lib/validations/article'
+import { articleSchema, articleStatusSchema } from '@/lib/validations/article'
 import { calculateReadingTime } from '@/lib/utils/reading-time'
 import { getSettings } from '@/lib/utils/settings'
 import { autoBroadcast } from '@/lib/utils/whatsapp'
@@ -45,6 +45,77 @@ export async function PUT(req: NextRequest, { params }: Params) {
   }
 
   const body = await req.json()
+
+  // Check if this is a status-only update (partial update)
+  const isStatusOnlyUpdate = Object.keys(body).length === 1 && 'status' in body
+
+  if (isStatusOnlyUpdate) {
+    // Use simplified schema for status-only updates
+    const parsed = articleStatusSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Status tidak valid' }, { status: 400 })
+    }
+
+    // Capture old status to detect publish event
+    const { data: existing } = await supabase
+      .from('articles')
+      .select('status, title')
+      .eq('id', id)
+      .single()
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Artikel tidak ditemukan' }, { status: 404 })
+    }
+
+    const { status } = parsed.data
+
+    // Non-super_admin cannot publish directly — route through approval
+    const effectiveStatus =
+      status === 'published' && profile.role !== 'super_admin'
+        ? 'pending_review'
+        : status
+
+    const { data: article, error } = await supabase
+      .from('articles')
+      .update({
+        status: effectiveStatus,
+        rejection_reason: null,
+        published_at: effectiveStatus === 'published'
+          ? new Date().toISOString()
+          : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    // Audit log
+    await supabase.from('audit_logs').insert({
+      user_id: user.id,
+      action: 'update',
+      resource_type: 'article',
+      resource_id: id,
+      details: { title: existing.title, status: article.status },
+    })
+
+    // Auto-broadcast only when status transitions to published for the first time
+    const justPublished = article.status === 'published' && !['published'].includes(existing?.status ?? '')
+    if (justPublished) {
+      const settings = await getSettings()
+      if (settings.enable_whatsapp) {
+        await autoBroadcast(article, user.id, settings.whatsapp_gateway)
+          .catch((err) => console.error('[broadcast] error:', err))
+      }
+    }
+
+    return NextResponse.json({ data: article })
+  }
+
+  // Full article update
   const parsed = articleSchema.safeParse(body)
 
   if (!parsed.success) {

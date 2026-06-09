@@ -417,5 +417,75 @@ SELECT
   COUNT(a.id) AS jumlah_artikel
 FROM public.categories c
 LEFT JOIN public.articles a ON a.category_id = c.id AND a.status = 'published'
-GROUP BY c.name, c.sort_order
+GROUP BY c.name, c.sort_order;
+
+-- ============================================================
+-- SAMPLE EVENTS — Kalender Kegiatan
+-- Artikel dengan event_date diisi akan muncul di kalender.
+-- Jalankan SETELAH migration 20260609000001_article_events.sql
+-- dan pastikan kategori 'kegiatan' sudah ada.
+-- ============================================================
+
+INSERT INTO public.articles
+  (title, slug, excerpt, content, content_html, status, is_featured,
+   event_date, event_end_date, event_time, event_end_time, event_location,
+   category_id)
+SELECT
+  ev.title, ev.slug, ev.excerpt, ev.excerpt, ev.excerpt,
+  'published', ev.is_featured,
+  ev.event_date, ev.event_end_date, ev.event_time::TIME, ev.event_end_time::TIME,
+  ev.event_location,
+  c.id
+FROM (VALUES
+  ('Rapat Koordinasi Pengurus PeduaTel',
+   'rapat-koordinasi-pengurus-peduatel',
+   'Rapat koordinasi bulanan seluruh pengurus PeduaTel pusat dan daerah.',
+   'Gedung Grha Merah Putih, Jakarta',
+   '2026-06-10'::DATE, NULL::DATE, '09:00', '12:00', true),
+
+  ('Senam Bersama & Jalan Santai',
+   'senam-bersama-jalan-santai-juni-2026',
+   'Kegiatan olahraga rutin setiap minggu kedua untuk menjaga kebugaran anggota.',
+   'Lapangan Telkom Landmark Tower, Jakarta',
+   '2026-06-12'::DATE, NULL::DATE, '06:30', '08:30', false),
+
+  ('Seminar Kesehatan Lansia',
+   'seminar-kesehatan-lansia-juni-2026',
+   'Seminar kesehatan bertema "Hidup Sehat dan Aktif di Usia Emas" bersama narasumber dari RSCM.',
+   'Aula Utama Kantor PeduaTel Pusat',
+   '2026-06-15'::DATE, NULL::DATE, '08:00', '13:00', true),
+
+  ('Pelatihan Literasi Digital',
+   'pelatihan-literasi-digital-juni-2026',
+   'Workshop penggunaan smartphone, media sosial, dan layanan digital perbankan.',
+   'Ruang Pelatihan Lt. 3, Gedung PeduaTel',
+   '2026-06-17'::DATE, '2026-06-18'::DATE, '08:30', '16:00', false),
+
+  ('Ziarah & Doa Bersama',
+   'ziarah-doa-bersama-juni-2026',
+   'Kegiatan ziarah ke makam pahlawan dan doa bersama.',
+   'Taman Makam Pahlawan Kalibata, Jakarta',
+   '2026-06-19'::DATE, NULL::DATE, '07:00', '10:00', false),
+
+  ('Musyawarah Daerah PeduaTel Jabodetabek',
+   'musyawarah-daerah-peduatel-jabodetabek-2026',
+   'Musyawarah daerah untuk memilih kepengurusan baru PeduaTel wilayah Jabodetabek.',
+   'Hotel Bidakara, Jakarta Selatan',
+   '2026-06-21'::DATE, '2026-06-22'::DATE, '08:00', '17:00', true),
+
+  ('Bakti Sosial & Donor Darah',
+   'bakti-sosial-donor-darah-juni-2026',
+   'Kegiatan bakti sosial: donor darah, pemeriksaan kesehatan gratis, dan santunan.',
+   'Balai Warga Kelurahan Gambir, Jakarta Pusat',
+   '2026-06-25'::DATE, NULL::DATE, '08:00', '14:00', false),
+
+  ('Gathering Keluarga Besar PeduaTel',
+   'gathering-keluarga-besar-peduatel-2026',
+   'Acara gathering tahunan seluruh anggota PeduaTel dan keluarga.',
+   'Balai Kartini, Jakarta',
+   '2026-06-28'::DATE, NULL::DATE, '10:00', '20:00', true)
+) AS ev(title, slug, excerpt, event_location, event_date, event_end_date, event_time, event_end_time, is_featured)
+JOIN public.categories c ON c.slug = 'kegiatan'
+ON CONFLICT (slug) DO NOTHING;
+
 ORDER BY c.sort_order;

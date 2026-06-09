@@ -17,7 +17,7 @@ const FOOTER_LINKS = {
   ],
   eksternal: [
     { label: 'Telkom Indonesia', href: 'https://telkom.co.id', external: true },
-    { label: 'Dana Pensiun Telkom', href: 'https://dapentel.co.id', external: true },
+    { label: 'Sistem Informasi Pensiunan Telkom', href: 'https://sipatel.vercel.app', external: true },
   ],
 }
 
@@ -117,7 +117,7 @@ export function Footer() {
               ))}
             </ul>
 
-            <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+            {/* <div className="p-4 rounded-xl bg-white/5 border border-white/10">
               <p className="text-xs font-semibold text-white mb-1">Berlangganan WhatsApp</p>
               <p className="text-xs text-white/60 mb-3 leading-relaxed">
                 Dapatkan berita terbaru langsung di WhatsApp Anda
@@ -128,7 +128,7 @@ export function Footer() {
               >
                 📱 Daftar Sekarang
               </Link>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

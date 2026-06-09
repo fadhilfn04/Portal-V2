@@ -56,6 +56,12 @@ export interface Article {
   published_at: string | null
   created_at: string
   updated_at: string
+  // ── Event / Calendar fields (nullable — set only on event articles)
+  event_date: string | null
+  event_end_date: string | null
+  event_time: string | null
+  event_end_time: string | null
+  event_location: string | null
 }
 
 export interface ArticleWithRelations extends Article {
@@ -75,6 +81,7 @@ export interface ArticleListItem
     | 'is_featured' | 'published_at' | 'status'
     | 'category_name' | 'category_slug' | 'category_color'
     | 'author_name' | 'author_avatar' | 'tags'
+    | 'event_date' | 'event_end_date' | 'event_time' | 'event_end_time' | 'event_location'
   > {}
 
 // ── Comment ────────────────────────────────────────────────
@@ -185,6 +192,12 @@ export interface ArticleFormValues {
   meta_title: string
   meta_description: string
   published_at: string
+  // Event fields (for Kegiatan category)
+  event_date?: string
+  event_end_date?: string
+  event_time?: string
+  event_end_time?: string
+  event_location?: string
 }
 
 export interface CommentFormValues {
