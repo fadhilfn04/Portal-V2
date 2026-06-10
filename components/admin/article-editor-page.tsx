@@ -69,11 +69,11 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
       meta_description: article?.meta_description ?? '',
       published_at: article?.published_at ?? new Date().toISOString().slice(0, 16),
       gallery_images: (article as any)?.gallery_images ?? [],
-      event_date: (article as any)?.event_date ?? '',
-      event_end_date: (article as any)?.event_end_date ?? '',
-      event_time: (article as any)?.event_time ?? '',
-      event_end_time: (article as any)?.event_end_time ?? '',
-      event_location: (article as any)?.event_location ?? '',
+      event_date: (article as any)?.event_date ?? null,
+      event_end_date: (article as any)?.event_end_date ?? null,
+      event_time: (article as any)?.event_time ?? null,
+      event_end_time: (article as any)?.event_end_time ?? null,
+      event_location: (article as any)?.event_location ?? null,
     },
   })
 
@@ -130,10 +130,20 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
       const endpoint = isEditing ? `/api/articles/${article!.id}` : '/api/articles'
       const method = isEditing ? 'PUT' : 'POST'
 
+      // Check if category is Kegiatan
+      const selectedCategory = categories.find((cat) => cat.id === values.category_id)
+      const isEventCategory = selectedCategory?.name.toLowerCase() === 'kegiatan'
+
       const payload = {
         ...values,
         reading_time: readingTime,
         cover_image: values.gallery_images?.[0] ?? values.cover_image ?? '',
+        // Only include event fields if category is Kegiatan, otherwise set to null
+        event_date: isEventCategory ? (values.event_date || null) : null,
+        event_end_date: isEventCategory ? (values.event_end_date || null) : null,
+        event_time: isEventCategory ? (values.event_time || null) : null,
+        event_end_time: isEventCategory ? (values.event_end_time || null) : null,
+        event_location: isEventCategory ? (values.event_location || null) : null,
       }
 
       const res = await fetch(endpoint, {

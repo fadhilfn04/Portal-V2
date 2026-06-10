@@ -17,11 +17,11 @@ export const articleSchema = z.object({
   published_at: z.string().optional().default(''),
   gallery_images: z.array(z.string()).max(4, 'Maksimal 4 gambar galeri').default([]),
   // Event fields (for Kegiatan category)
-  event_date: z.string().optional().default(''),
-  event_end_date: z.string().optional().default(''),
-  event_time: z.string().optional().default(''),
-  event_end_time: z.string().optional().default(''),
-  event_location: z.string().max(200, 'Lokasi maksimal 200 karakter').optional().default(''),
+  event_date: z.string().nullable().optional(),
+  event_end_date: z.string().nullable().optional(),
+  event_time: z.string().nullable().optional(),
+  event_end_time: z.string().nullable().optional(),
+  event_location: z.string().max(200, 'Lokasi maksimal 200 karakter').nullable().optional(),
 })
 
 // Simplified schema for status-only updates
