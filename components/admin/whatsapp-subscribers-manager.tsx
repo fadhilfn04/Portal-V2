@@ -122,8 +122,110 @@ export function WhatsAppSubscribersManager() {
         ))}
       </div>
 
-      {/* Rest of content will be added in next tasks */}
-      <div>{/* Filter controls placeholder */}</div>
+      {/* Filter Controls */}
+      <div className="bg-white rounded-2xl border border-neutral-150 p-5 space-y-4">
+        {/* Row 1 - Primary Filters */}
+        <div className="flex flex-wrap gap-3">
+          {/* Search */}
+          <div className="flex-1 min-w-[200px]">
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <input
+                type="text"
+                placeholder="Cari nama atau nomor..."
+                value={filters.search}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                className="w-full h-10 pl-10 pr-3 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
+              />
+            </div>
+          </div>
+
+          {/* Status Dropdown */}
+          <select
+            value={filters.status}
+            onChange={(e) => setFilters({ ...filters, status: e.target.value as FilterState['status'] })}
+            className="h-10 px-3 text-sm rounded-xl border border-neutral-200 bg-white focus:outline-none focus:border-brand-400"
+          >
+            <option value="all">Semua Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+
+          {/* Source Dropdown */}
+          <select
+            value={filters.source || ''}
+            onChange={(e) => setFilters({ ...filters, source: e.target.value || null })}
+            className="h-10 px-3 text-sm rounded-xl border border-neutral-200 bg-white focus:outline-none focus:border-brand-400"
+          >
+            <option value="">Semua Source</option>
+            <option value="web">Web</option>
+            <option value="manual">Manual</option>
+            <option value="import">Import</option>
+          </select>
+
+          {/* Sort Dropdown */}
+          <select
+            value={filters.sort}
+            onChange={(e) => setFilters({ ...filters, sort: e.target.value as 'subscribed_at' | 'name' })}
+            className="h-10 px-3 text-sm rounded-xl border border-neutral-200 bg-white focus:outline-none focus:border-brand-400"
+          >
+            <option value="subscribed_at">Terbaru Subscribe</option>
+            <option value="name">Nama A-Z</option>
+          </select>
+
+          {/* Reset Button */}
+          <button
+            onClick={() => setFilters({
+              status: 'all',
+              source: null,
+              dateFrom: null,
+              dateTo: null,
+              search: '',
+              sort: 'subscribed_at',
+            })}
+            className="h-10 px-3 text-sm rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition-colors flex items-center gap-2"
+          >
+            <X size={14} />
+            Reset
+          </button>
+
+          {/* Toggle Advanced */}
+          <button
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className="h-10 px-3 text-sm rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition-colors flex items-center gap-2"
+          >
+            <Filter size={14} />
+            Advanced
+            <ChevronDown size={14} className={cn('transition-transform', showAdvancedFilters && 'rotate-180')} />
+          </button>
+        </div>
+
+        {/* Row 2 - Advanced Filters (Date Range) */}
+        {showAdvancedFilters && (
+          <div className="flex flex-wrap gap-3 pt-3 border-t border-neutral-100">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-neutral-600">Dari:</label>
+              <input
+                type="date"
+                value={filters.dateFrom || ''}
+                onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value || null })}
+                className="h-9 px-3 text-sm rounded-lg border border-neutral-200 focus:outline-none focus:border-brand-400"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-neutral-600">Sampai:</label>
+              <input
+                type="date"
+                value={filters.dateTo || ''}
+                onChange={(e) => setFilters({ ...filters, dateTo: e.target.value || null })}
+                className="h-9 px-3 text-sm rounded-lg border border-neutral-200 focus:outline-none focus:border-brand-400"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Table placeholder */}
       <div>{/* Table placeholder */}</div>
     </div>
   )
