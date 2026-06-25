@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { whatsappSubscriberSchema } from '@/lib/validations/whatsapp-subscriber'
 
 // Validation schema for query parameters
 const whatsappSubscribersQuerySchema = z.object({
@@ -14,7 +15,6 @@ const whatsappSubscribersQuerySchema = z.object({
   sort: z.enum(['subscribed_at', 'name', '-subscribed_at', '-name']).default('subscribed_at'),
 })
 
-type WhatsappSubscribersQuery = z.infer<typeof whatsappSubscribersQuerySchema>
 
 // Helper function to escape special characters for SQL LIKE
 function escapeSqlLike(value: string): string {
@@ -121,6 +121,89 @@ export async function GET(request: NextRequest) {
       per_page: per_page,
       total_pages: Math.ceil((count ?? 0) / per_page),
     })
+  } catch (error) {
+    console.error('Unexpected error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+
+    // Authentication check - require authenticated user
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Authentication required' },
+        { status: 401 }
+      )
+    }
+
+    // Authorization check - only admins and editors can create subscribers
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || !['admin', 'super_admin', 'editor'].includes(profile.role)) {
+      return NextResponse.json(
+        { error: 'Forbidden - Insufficient permissions' },
+        { status: 403 }
+      )
+    }
+
+    const body = await request.json()
+
+    const validation = whatsappSubscriberSchema.safeParse(body)
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error.errors[0].message },
+        { status: 400 }
+      )
+    }
+
+    const { phone_number, name, source } = validation.data
+
+    // Check for duplicate phone number
+    const { data: existing } = await supabase
+      .from('whatsapp_subscribers')
+      .select('id')
+      .eq('phone_number', phone_number)
+      .single()
+
+    if (existing) {
+      return NextResponse.json(
+        { error: 'Nomor WhatsApp sudah terdaftar' },
+        { status: 409 }
+      )
+    }
+
+    const { data, error } = await supabase
+      .from('whatsapp_subscribers')
+      .insert({
+        phone_number,
+        name: name || null,
+        source: source || 'manual',
+        is_active: true,
+        subscribed_at: new Date().toISOString(),
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error creating subscriber:', error)
+      return NextResponse.json(
+        { error: 'Failed to create subscriber' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({ data }, { status: 201 })
   } catch (error) {
     console.error('Unexpected error:', error)
     return NextResponse.json(
