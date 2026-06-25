@@ -15,14 +15,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Authorization check - only admins and editors can delete subscribers
+    // Authorization check - only admins and super_admins can delete subscribers
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
 
-    if (!profile || !['admin', 'super_admin', 'editor'].includes(profile.role)) {
+    if (!profile || !['admin', 'super_admin'].includes(profile.role)) {
       return NextResponse.json(
         { error: 'Forbidden - Insufficient permissions' },
         { status: 403 }
