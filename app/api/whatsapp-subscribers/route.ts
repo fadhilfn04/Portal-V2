@@ -1,59 +1,108 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+
+// Validation schema for query parameters
+const whatsappSubscribersQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  per_page: z.coerce.number().int().positive().max(100).default(10),
+  status: z.enum(['active', 'inactive', 'all']).default('all'),
+  source: z.enum(['website', 'manual', 'import']).optional(),
+  search: z.string().max(100).optional(),
+  date_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format. Use YYYY-MM-DD').optional(),
+  date_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format. Use YYYY-MM-DD').optional(),
+  sort: z.enum(['subscribed_at', 'name', '-subscribed_at', '-name']).default('subscribed_at'),
+})
+
+type WhatsappSubscribersQuery = z.infer<typeof whatsappSubscribersQuerySchema>
+
+// Helper function to escape special characters for SQL LIKE
+function escapeSqlLike(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&')
+}
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const searchParams = request.nextUrl.searchParams
 
-    const page = parseInt(searchParams.get('page') || '1')
-    const perPage = parseInt(searchParams.get('per_page') || '10')
-    const status = searchParams.get('status')
-    const source = searchParams.get('source')
-    const search = searchParams.get('search')
-    const dateFrom = searchParams.get('date_from')
-    const dateTo = searchParams.get('date_to')
-    const sort = searchParams.get('sort') || 'subscribed_at'
-
-    if (page < 1 || perPage < 1 || perPage > 100) {
+    // Authentication check - require authenticated user
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
       return NextResponse.json(
-        { error: 'Invalid pagination parameters' },
+        { error: 'Unauthorized - Authentication required' },
+        { status: 401 }
+      )
+    }
+
+    // Authorization check - only admins and editors can access this endpoint
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || !['admin', 'super_admin', 'editor'].includes(profile.role)) {
+      return NextResponse.json(
+        { error: 'Forbidden - Insufficient permissions' },
+        { status: 403 }
+      )
+    }
+
+    // Parse and validate query parameters
+    const queryParams: Record<string, string> = {}
+    request.nextUrl.searchParams.forEach((value, key) => {
+      queryParams[key] = value
+    })
+
+    const validationResult = whatsappSubscribersQuerySchema.safeParse(queryParams)
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid query parameters', details: validationResult.error.issues },
         { status: 400 }
       )
     }
+
+    const params = validationResult.data
+    const { page, per_page, status, source, search, date_from, date_to, sort } = params
 
     let query = supabase
       .from('whatsapp_subscribers')
       .select('*', { count: 'exact' })
 
+    // Apply status filter
     if (status === 'active') {
       query = query.eq('is_active', true)
     } else if (status === 'inactive') {
       query = query.eq('is_active', false)
     }
 
+    // Apply source filter (already validated by zod)
     if (source) {
       query = query.eq('source', source)
     }
 
+    // Apply search filter with proper SQL injection protection
     if (search) {
-      query = query.or(`name.ilike.%${search}%,phone_number.ilike.%${search}%`)
+      const sanitizedSearch = escapeSqlLike(search.trim())
+      query = query.or(`name.ilike.%${sanitizedSearch}%,phone_number.ilike.%${sanitizedSearch}%`)
     }
 
-    if (dateFrom) {
-      query = query.gte('subscribed_at', dateFrom)
+    // Apply date range filters (already validated by zod)
+    if (date_from) {
+      query = query.gte('subscribed_at', date_from)
     }
 
-    if (dateTo) {
-      query = query.lte('subscribed_at', dateTo)
+    if (date_to) {
+      query = query.lte('subscribed_at', date_to)
     }
 
-    const sortColumn = sort === 'name' ? 'name' : 'subscribed_at'
-    const sortOrder = sort === 'name' || sort === 'subscribed_at' ? true : false
-    query = query.order(sortColumn, { ascending: sortOrder })
+    // Apply sorting with proper validation
+    const sortColumn = sort.startsWith('-') ? sort.slice(1) : sort
+    const ascending = !sort.startsWith('-')
+    query = query.order(sortColumn, { ascending })
 
-    const from = (page - 1) * perPage
-    const to = from + perPage - 1
+    const from = (page - 1) * per_page
+    const to = from + per_page - 1
 
     const { data, error, count } = await query.range(from, to)
 
@@ -69,8 +118,8 @@ export async function GET(request: NextRequest) {
       data: data ?? [],
       total: count ?? 0,
       page,
-      per_page: perPage,
-      total_pages: Math.ceil((count ?? 0) / perPage),
+      per_page: per_page,
+      total_pages: Math.ceil((count ?? 0) / per_page),
     })
   } catch (error) {
     console.error('Unexpected error:', error)
