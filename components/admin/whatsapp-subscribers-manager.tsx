@@ -579,6 +579,184 @@ export function WhatsAppSubscribersManager() {
           </div>
         </div>
       </div>
+
+      {/* Add/Edit Subscriber Modal */}
+      {(isAddModalOpen || editingSubscriber) && (
+        <SubscriberModal
+          subscriber={editingSubscriber}
+          onClose={() => {
+            setIsAddModalOpen(false)
+            setEditingSubscriber(null)
+          }}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['whatsapp-subscribers'] })
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// Add/Edit Subscriber Modal Component
+function SubscriberModal({
+  subscriber,
+  onClose,
+  onSuccess,
+}: {
+  subscriber: WhatsAppSubscriber | null
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const [formData, setFormData] = useState({
+    phone_number: subscriber?.phone_number || '',
+    name: subscriber?.name || '',
+    source: subscriber?.source || 'manual',
+    is_active: subscriber?.is_active ?? true,
+  })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setErrors({})
+    setIsSubmitting(true)
+
+    // Basic validation
+    if (!formData.phone_number) {
+      setErrors({ phone_number: 'Nomor WhatsApp wajib diisi' })
+      setIsSubmitting(false)
+      return
+    }
+
+    const phoneRegex = /^(08|628|\+628)[0-9]{9,10}$/
+    if (!phoneRegex.test(formData.phone_number)) {
+      setErrors({ phone_number: 'Format nomor WhatsApp tidak valid' })
+      setIsSubmitting(false)
+      return
+    }
+
+    try {
+      const url = subscriber
+        ? `/api/whatsapp-subscribers/${subscriber.id}`
+        : '/api/whatsapp-subscribers'
+      const method = subscriber ? 'PUT' : 'POST'
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed to save subscriber')
+      }
+
+      toast.success(subscriber ? 'Subscriber berhasil diupdate' : 'Subscriber berhasil ditambahkan')
+      onSuccess()
+      onClose()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Terjadi kesalahan')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-md w-full p-6">
+        <h2 className="text-lg font-bold text-neutral-900 mb-4">
+          {subscriber ? 'Edit Subscriber' : 'Add Subscriber'}
+        </h2>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Phone Number */}
+          <div>
+            <label className="block text-sm font-semibold text-neutral-700 mb-1.5">
+              Nomor WhatsApp *
+            </label>
+            <input
+              type="text"
+              value={formData.phone_number}
+              onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+              placeholder="081234567890"
+              className={cn(
+                'w-full h-10 px-3 text-sm rounded-xl border focus:outline-none focus:ring-2 focus:ring-brand-100 transition-all',
+                errors.phone_number ? 'border-red-300 focus:border-red-400 focus:ring-red-100' : 'border-neutral-200 focus:border-brand-400'
+              )}
+            />
+            {errors.phone_number && (
+              <p className="text-xs text-red-600 mt-1">{errors.phone_number}</p>
+            )}
+          </div>
+
+          {/* Name */}
+          <div>
+            <label className="block text-sm font-semibold text-neutral-700 mb-1.5">
+              Nama
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="Optional"
+              className="w-full h-10 px-3 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
+            />
+          </div>
+
+          {/* Source */}
+          <div>
+            <label className="block text-sm font-semibold text-neutral-700 mb-1.5">
+              Source
+            </label>
+            <select
+              value={formData.source}
+              onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+              className="w-full h-10 px-3 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-brand-400 bg-white"
+            >
+              <option value="web">Web</option>
+              <option value="manual">Manual</option>
+              <option value="import">Import</option>
+            </select>
+          </div>
+
+          {/* Status (edit mode only) */}
+          {subscriber && (
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-1.5">
+                Status
+              </label>
+              <select
+                value={formData.is_active ? 'active' : 'inactive'}
+                onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'active' })}
+                className="w-full h-10 px-3 text-sm rounded-xl border border-neutral-200 focus:outline-none focus:border-brand-400 bg-white"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 h-10 text-sm font-semibold rounded-xl border border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition-colors"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 h-10 text-sm font-semibold rounded-xl bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isSubmitting ? 'Saving...' : subscriber ? 'Update' : 'Add'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
