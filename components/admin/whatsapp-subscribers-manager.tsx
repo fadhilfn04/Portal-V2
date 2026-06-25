@@ -78,6 +78,54 @@ export function WhatsAppSubscribersManager() {
     setSelectedIds([])
   }, [page, filters])
 
+  // Individual toggle status
+  const toggleMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/whatsapp-subscribers/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: !subscribers.find(s => s.id === id)?.is_active }),
+      })
+      if (!res.ok) throw new Error('Failed to update status')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-subscribers'] })
+      toast.success('Status berhasil diupdate')
+    },
+    onError: () => {
+      toast.error('Gagal mengupdate status')
+    },
+  })
+
+  // Individual delete
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/whatsapp-subscribers/${id}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) throw new Error('Failed to delete')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-subscribers'] })
+      toast.success('Subscriber berhasil dihapus')
+    },
+    onError: () => {
+      toast.error('Gagal menghapus subscriber')
+    },
+  })
+
+  const handleToggleStatus = (subscriber: WhatsAppSubscriber) => {
+    toggleMutation.mutate(subscriber.id)
+  }
+
+  const handleDelete = (id: string) => {
+    if (confirm('Yakin ingin menghapus subscriber ini?')) {
+      deleteMutation.mutate(id)
+    }
+  }
+
   // Fetch stats
   const { data: stats } = useQuery<SubscriberStats>({
     queryKey: ['whatsapp-subscribers-stats'],
@@ -225,8 +273,187 @@ export function WhatsAppSubscribersManager() {
         )}
       </div>
 
-      {/* Table placeholder */}
-      <div>{/* Table placeholder */}</div>
+      {/* Subscribers Table */}
+      <div className="bg-white rounded-2xl border border-neutral-150 overflow-hidden">
+        {/* Table Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-150">
+          <h2 className="text-sm font-semibold text-neutral-900">Daftar Subscribers</h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['whatsapp-subscribers'] })}
+              className="p-2 rounded-lg hover:bg-neutral-100 transition-colors"
+              title="Refresh"
+            >
+              <RefreshCw size={16} className="text-neutral-500" />
+            </button>
+            <button className="p-2 rounded-lg hover:bg-neutral-100 transition-colors" title="Export">
+              <Download size={16} className="text-neutral-500" />
+            </button>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-neutral-50 border-b border-neutral-200">
+              <tr>
+                <th className="px-5 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.length === subscribers.length && subscribers.length > 0}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedIds(subscribers.map(s => s.id))
+                      } else {
+                        setSelectedIds([])
+                      }
+                    }}
+                    className="rounded border-neutral-300"
+                  />
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                  Subscriber
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                  Source
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                  Subscribed At
+                </th>
+                <th className="px-5 py-3 text-right text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-150">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-5 py-8 text-center text-neutral-500">
+                    <div className="flex items-center justify-center gap-2">
+                      <RefreshCw size={16} className="animate-spin" />
+                      Loading...
+                    </div>
+                  </td>
+                </tr>
+              ) : subscribers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-5 py-8 text-center text-neutral-500">
+                    No subscribers found
+                  </td>
+                </tr>
+              ) : (
+                subscribers.map((subscriber) => (
+                  <tr key={subscriber.id} className="hover:bg-neutral-50 transition-colors">
+                    <td className="px-5 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(subscriber.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedIds([...selectedIds, subscriber.id])
+                          } else {
+                            setSelectedIds(selectedIds.filter(id => id !== subscriber.id))
+                          }
+                        }}
+                        className="rounded border-neutral-300"
+                      />
+                    </td>
+                    <td className="px-5 py-4">
+                      <div>
+                        <p className="text-sm font-medium text-neutral-900">{subscriber.name}</p>
+                        <p className="text-xs text-neutral-500 mt-0.5">{subscriber.phone_number}</p>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      {subscriber.is_active ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-lg">
+                          <CheckCircle2 size={12} />
+                          Active
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-neutral-100 text-neutral-600 text-xs font-medium rounded-lg">
+                          <XCircle size={12} />
+                          Inactive
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="text-xs text-neutral-600 capitalize">{subscriber.source}</span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <p className="text-xs text-neutral-600">
+                        {formatRelative(new Date(subscriber.subscribed_at))}
+                      </p>
+                      <p className="text-xs text-neutral-400 mt-0.5">
+                        {formatDateTime(new Date(subscriber.subscribed_at))}
+                      </p>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleToggleStatus(subscriber)}
+                          className={cn(
+                            "p-2 rounded-lg transition-colors",
+                            subscriber.is_active
+                              ? "hover:bg-red-50 text-red-600"
+                              : "hover:bg-green-50 text-green-600"
+                          )}
+                          title={subscriber.is_active ? "Deactivate" : "Activate"}
+                        >
+                          <Power size={16} />
+                        </button>
+                        <button
+                          onClick={() => setEditingSubscriber(subscriber)}
+                          className="p-2 rounded-lg hover:bg-neutral-100 text-neutral-600 transition-colors"
+                          title="Edit"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(subscriber.id)}
+                          className="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        <div className="flex items-center justify-between px-5 py-4 border-t border-neutral-150 bg-neutral-50">
+          <p className="text-sm text-neutral-600">
+            Showing {((page - 1) * perPage) + 1} to {Math.min(page * perPage, total)} of {total} subscribers
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page === 1}
+              className="px-3 py-1.5 text-sm rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-neutral-600">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage(Math.min(totalPages, page + 1))}
+              disabled={page === totalPages}
+              className="px-3 py-1.5 text-sm rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
