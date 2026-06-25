@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Newspaper, Tag, MessageSquare,
   Send, BarChart3, Settings, LogOut, ExternalLink,
-  ClipboardCheck,
+  ClipboardCheck, Users,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -26,6 +26,7 @@ const BASE_NAV = [
     group: 'Komunikasi',
     items: [
       { label: 'Broadcast WA', href: '/admin/broadcast', icon: Send },
+      { label: 'Subscribers WA', href: '/admin/whatsapp-subscribers', icon: Users },
       { label: 'Analitik', href: '/admin/analitik', icon: BarChart3 },
     ],
   },
