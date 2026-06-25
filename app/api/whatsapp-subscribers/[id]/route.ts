@@ -123,6 +123,20 @@ export async function DELETE(
       )
     }
 
+    // Check if subscriber exists before deletion
+    const { data: subscriber } = await supabase
+      .from('whatsapp_subscribers')
+      .select('id')
+      .eq('id', id)
+      .single()
+
+    if (!subscriber) {
+      return NextResponse.json(
+        { error: 'Subscriber not found' },
+        { status: 404 }
+      )
+    }
+
     const { error } = await supabase
       .from('whatsapp_subscribers')
       .delete()
