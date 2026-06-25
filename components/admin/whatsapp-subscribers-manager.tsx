@@ -126,6 +126,81 @@ export function WhatsAppSubscribersManager() {
     }
   }
 
+  // Bulk actions
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async (data: { ids: string[]; action: 'activate' | 'deactivate' }) => {
+      const res = await fetch('/api/whatsapp-subscribers/bulk-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) throw new Error('Failed to bulk update')
+      return res.json()
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-subscribers'] })
+      setSelectedIds([])
+      toast.success(`${data.updated} subscriber${data.updated > 1 ? 's' : ''} berhasil diupdate`)
+    },
+    onError: () => {
+      toast.error('Gagal melakukan bulk update')
+    },
+  })
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const res = await fetch('/api/whatsapp-subscribers/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      })
+      if (!res.ok) throw new Error('Failed to bulk delete')
+      return res.json()
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-subscribers'] })
+      setSelectedIds([])
+      toast.success(`${data.deleted} subscriber${data.deleted > 1 ? 's' : ''} berhasil dihapus`)
+    },
+    onError: () => {
+      toast.error('Gagal menghapus subscribers')
+    },
+  })
+
+  const handleBulkAction = (action: 'activate' | 'deactivate') => {
+    bulkUpdateMutation.mutate({ ids: selectedIds, action })
+  }
+
+  const handleBulkDelete = () => {
+    if (confirm(`Yakin ingin menghapus ${selectedIds.length} subscriber?`)) {
+      bulkDeleteMutation.mutate(selectedIds)
+    }
+  }
+
+  const handleBulkExport = () => {
+    const selected = subscribers.filter(s => selectedIds.includes(s.id))
+    const csv = [
+      ['Phone Number', 'Name', 'Status', 'Source', 'Subscribed Date'].join(','),
+      ...selected.map(s => [
+        s.phone_number,
+        s.name || '',
+        s.is_active ? 'Active' : 'Inactive',
+        s.source || '',
+        s.subscribed_at,
+      ].join(',')),
+    ].join('\n')
+
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `whatsapp-subscribers-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+
+    toast.success(`${selected.length} subscriber${selected.length > 1 ? 's' : ''} di-export ke CSV`)
+  }
+
   // Fetch stats
   const { data: stats } = useQuery<SubscriberStats>({
     queryKey: ['whatsapp-subscribers-stats'],
@@ -272,6 +347,56 @@ export function WhatsAppSubscribersManager() {
           </div>
         )}
       </div>
+
+      {/* Bulk Actions Bar */}
+      {selectedIds.length > 0 && (
+        <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-brand-900">
+              {selectedIds.length} subscriber{selectedIds.length > 1 ? 's' : ''} selected
+            </span>
+            <button
+              onClick={() => setSelectedIds([])}
+              className="text-sm text-brand-600 hover:text-brand-800 underline"
+            >
+              Clear selection
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleBulkAction('activate')}
+              disabled={bulkUpdateMutation.isPending}
+              className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              <CheckCircle2 size={16} />
+              Activate
+            </button>
+            <button
+              onClick={() => handleBulkAction('deactivate')}
+              disabled={bulkUpdateMutation.isPending}
+              className="flex items-center gap-2 px-3 py-2 bg-neutral-600 hover:bg-neutral-700 disabled:bg-neutral-400 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              <XCircle size={16} />
+              Deactivate
+            </button>
+            <button
+              onClick={handleBulkExport}
+              className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              <Download size={16} />
+              Export
+            </button>
+            <button
+              onClick={handleBulkDelete}
+              disabled={bulkDeleteMutation.isPending}
+              className="flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              <Trash2 size={16} />
+              Delete
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Subscribers Table */}
       <div className="bg-white rounded-2xl border border-neutral-150 overflow-hidden">
