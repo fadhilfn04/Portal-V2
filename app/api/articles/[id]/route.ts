@@ -21,7 +21,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       .select('role')
       .eq('id', user.id)
       .single()
-    allowUnpublished = profile && ['admin', 'super_admin', 'editor'].includes(profile.role)
+    allowUnpublished = !!profile && ['admin', 'super_admin', 'editor'].includes(profile.role)
   }
 
   // Only fetch published articles for unauthenticated users
