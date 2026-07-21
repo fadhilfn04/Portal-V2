@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Newspaper, Tag, MessageSquare,
   Send, BarChart3, Settings, LogOut, ExternalLink,
-  ClipboardCheck, Users,
+  ClipboardCheck, Users, UserPlus,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -58,7 +58,7 @@ export function AdminSidebar({ userRole }: AdminSidebarProps) {
     return pathname.startsWith(href)
   }
 
-  // Inject approval link for super_admin under Menu Utama
+  // Inject approval and pending admins links for super_admin under Menu Utama
   const navItems = BASE_NAV.map((group) => {
     if (group.group !== 'Menu Utama' || userRole !== 'super_admin') return group
     return {
@@ -66,6 +66,7 @@ export function AdminSidebar({ userRole }: AdminSidebarProps) {
       items: [
         ...group.items,
         { label: 'Persetujuan', href: '/admin/approval', icon: ClipboardCheck, exact: false },
+        { label: 'Admin Baru', href: '/admin/pending-admins', icon: UserPlus, exact: false },
       ],
     }
   })

@@ -20,7 +20,8 @@ type LoginForm = z.infer<typeof loginSchema>
 function LoginForm() {
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirectTo') ?? '/admin'
-  const hasError = searchParams.get('error') === 'no-access'
+  const hasAccessError = searchParams.get('error') === 'no-access'
+  const hasNotApprovedError = searchParams.get('error') === 'not-approved'
   const [showPassword, setShowPassword] = useState(false)
 
   const {
@@ -31,13 +32,27 @@ function LoginForm() {
 
   const onSubmit = async (values: LoginForm) => {
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: values.email,
       password: values.password,
     })
 
     if (error) {
       toast.error('Email atau password salah. Silakan periksa kembali.')
+      return
+    }
+
+    // Check if user is approved (for admin role)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, is_approved')
+      .eq('id', data.user.id)
+      .single()
+
+    // If admin and not approved, sign out and redirect with error
+    if (profile?.role === 'admin' && !profile.is_approved) {
+      await supabase.auth.signOut()
+      window.location.href = '/login?error=not-approved'
       return
     }
 
@@ -60,12 +75,23 @@ function LoginForm() {
         </div>
 
         {/* Access denied banner */}
-        {hasError && (
+        {hasAccessError && (
           <div className="mb-4 flex items-start gap-3 p-4 bg-error-50 border border-error-200 rounded-xl text-sm text-error-700">
             <span className="text-base leading-none">⛔</span>
             <div>
               <p className="font-semibold">Akses Ditolak</p>
               <p className="text-error-600 mt-0.5">Akun Anda belum memiliki hak akses admin. Hubungi administrator untuk mendapatkan akses.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Not approved banner */}
+        {hasNotApprovedError && (
+          <div className="mb-4 flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
+            <span className="text-base leading-none">⏳</span>
+            <div>
+              <p className="font-semibold">Akun Belum Disetujui</p>
+              <p className="text-amber-600 mt-0.5">Akun Anda telah terdaftar tetapi belum disetujui oleh administrator. Silakan tunggu persetujuan.</p>
             </div>
           </div>
         )}
