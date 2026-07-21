@@ -100,7 +100,7 @@ export function ArticleListTable({ articles }: ArticleListTableProps) {
                     {article.category_name ? (
                       <span
                         className="px-2 py-0.5 text-xs font-semibold rounded-full"
-                        style={{ backgroundColor: `${article.category_color}18`, color: article.category_color }}
+                        style={{ backgroundColor: `${article.category_color ?? '#1a3c6e'}18`, color: article.category_color ?? '#1a3c6e' }}
                       >
                         {article.category_name}
                       </span>
