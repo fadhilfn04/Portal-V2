@@ -87,26 +87,29 @@ export function ArticleRowActions({ articleId, slug, status }: ArticleRowActions
               Edit Artikel
             </Link>
 
-            <a
-              href={`/artikel/${slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors"
-            >
-              <ExternalLink size={15} className="text-neutral-400" />
-              Lihat di Portal
-            </a>
+            {status === 'published' && (
+              <a
+                href={`/artikel/${slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors"
+              >
+                <ExternalLink size={15} className="text-neutral-400" />
+                Lihat di Portal
+              </a>
+            )}
 
             <div className="h-px bg-neutral-100 my-1" />
 
-            {status !== 'published' && (
+            {/* Submit/Resubmit button - only for draft and rejected */}
+            {(status === 'draft' || status === 'rejected') && (
               <button
                 onClick={() => handleStatusChange('published')}
                 className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-green-700 hover:bg-green-50 transition-colors"
               >
                 <Eye size={15} className="text-green-500" />
-                Terbitkan
+                {status === 'rejected' ? 'Ajukan Ulang' : 'Ajukan'}
               </button>
             )}
             {status === 'published' && (

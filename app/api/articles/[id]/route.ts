@@ -11,11 +11,31 @@ export async function GET(_req: NextRequest, { params }: Params) {
   const { id } = await params
   const supabase = await createClient()
 
-  const { data, error } = await supabase
+  // Check if user is authenticated
+  const { data: { user } } = await supabase.auth.getUser()
+  let allowUnpublished = false
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    allowUnpublished = profile && ['admin', 'super_admin', 'editor'].includes(profile.role)
+  }
+
+  // Only fetch published articles for unauthenticated users
+  let query = supabase
     .from('articles_with_author')
     .select()
-    .eq('id', id)
-    .single()
+
+  if (allowUnpublished) {
+    query = query.eq('id', id)
+  } else {
+    query = query.eq('id', id).eq('status', 'published')
+  }
+
+  const { data, error } = await query.single()
 
   if (error || !data) return NextResponse.json({ error: 'Artikel tidak ditemukan' }, { status: 404 })
 
@@ -83,6 +103,12 @@ export async function PUT(req: NextRequest, { params }: Params) {
         published_at: effectiveStatus === 'published'
           ? new Date().toISOString()
           : null,
+        approved_at: effectiveStatus === 'published' && profile.role === 'super_admin'
+          ? new Date().toISOString()
+          : null,
+        approved_by: effectiveStatus === 'published' && profile.role === 'super_admin'
+          ? user.id
+          : null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
@@ -147,6 +173,12 @@ export async function PUT(req: NextRequest, { params }: Params) {
       reading_time: readingTime,
       published_at: effectiveStatus === 'published'
         ? articleData.published_at || new Date().toISOString()
+        : null,
+      approved_at: effectiveStatus === 'published' && profile.role === 'super_admin'
+        ? new Date().toISOString()
+        : null,
+      approved_by: effectiveStatus === 'published' && profile.role === 'super_admin'
+        ? user.id
         : null,
       updated_at: new Date().toISOString(),
     })

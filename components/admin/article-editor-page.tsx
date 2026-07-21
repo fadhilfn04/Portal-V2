@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm, Controller, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEditor, EditorContent } from '@tiptap/react'
@@ -16,7 +16,7 @@ import {
   Save, Send, Eye, ArrowLeft, Bold, Italic, UnderlineIcon,
   List, ListOrdered, Quote, Image as ImageIcon, Link as LinkIcon,
   AlignLeft, AlignCenter, AlignRight, Heading2, Heading3,
-  Star, X, Plus, Loader2, Calendar, MapPin, Clock,
+  Star, X, Plus, Loader2, Calendar, MapPin, Clock, Pencil, Check, Info,
 } from 'lucide-react'
 import { articleSchema, type ArticleFormData } from '@/lib/validations/article'
 import { generateSlug } from '@/lib/utils/slug'
@@ -41,6 +41,8 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
   const [isSaving, setIsSaving] = useState(false)
   const [tagInput, setTagInput] = useState('')
   const [readingTime, setReadingTime] = useState(1)
+  const [slugLocked, setSlugLocked] = useState(false)
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false)
   const isEditing = !!article?.id
   const isSuperAdmin = userRole === 'super_admin'
 
@@ -50,7 +52,9 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
     handleSubmit,
     setValue,
     watch,
+    resetField,
     formState: { errors, isDirty },
+    trigger,
   } = useForm<ArticleFormData>({
     resolver: zodResolver(articleSchema) as Resolver<ArticleFormData>,
     defaultValues: {
@@ -79,6 +83,22 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
 
   const [title, tags, status, categoryId] = watch(['title', 'tags', 'status', 'category_id'])
 
+  // Auto-generate slug from title (always, unless manually edited)
+  useEffect(() => {
+    if (title && !slugManuallyEdited) {
+      setValue('slug', generateSlug(title))
+    }
+  }, [title, setValue, slugManuallyEdited])
+
+  const handleSlugEdit = () => {
+    setSlugLocked(!slugLocked)
+  }
+
+  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSlugManuallyEdited(true)
+    setValue('slug', e.target.value)
+  }
+
   // TipTap editor
   const editor = useEditor({
     extensions: [
@@ -104,14 +124,6 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
     },
   })
 
-  // Auto-generate slug from title
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    if (!isEditing && !watch('slug')) {
-      setValue('slug', generateSlug(value))
-    }
-  }
-
   const addTag = () => {
     const tag = tagInput.trim().toLowerCase()
     if (tag && !tags.includes(tag) && tags.length < 10) {
@@ -130,7 +142,6 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
       const endpoint = isEditing ? `/api/articles/${article!.id}` : '/api/articles'
       const method = isEditing ? 'PUT' : 'POST'
 
-      // Check if category is Kegiatan
       const selectedCategory = categories.find((cat) => cat.id === values.category_id)
       const isEventCategory = selectedCategory?.name.toLowerCase() === 'kegiatan'
 
@@ -138,7 +149,6 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
         ...values,
         reading_time: readingTime,
         cover_image: values.gallery_images?.[0] ?? values.cover_image ?? '',
-        // Only include event fields if category is Kegiatan, otherwise set to null
         event_date: isEventCategory ? (values.event_date || null) : null,
         event_end_date: isEventCategory ? (values.event_end_date || null) : null,
         event_time: isEventCategory ? (values.event_time || null) : null,
@@ -190,6 +200,9 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
     </button>
   )
 
+  const selectedCategory = categories.find((cat) => cat.id === categoryId)
+  const isEventCategory = selectedCategory?.name.toLowerCase() === 'kegiatan'
+
   return (
     <div className="space-y-6 max-w-6xl">
       {/* Header */}
@@ -211,10 +224,12 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
                 'font-semibold',
                 status === 'published' ? 'text-success-600'
                   : status === 'pending_review' ? 'text-amber-600'
+                  : status === 'rejected' ? 'text-red-600'
                   : 'text-neutral-500'
               )}>
                 {status === 'published' ? 'Terbit'
                   : status === 'pending_review' ? 'Menunggu Persetujuan'
+                  : status === 'rejected' ? 'Ditolak'
                   : status === 'archived' ? 'Diarsipkan'
                   : 'Draf'}
               </span>
@@ -230,7 +245,7 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
               handleSubmit(onSubmit)()
             }}
             disabled={isSaving}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-700 border border-neutral-200 rounded-xl hover:bg-neutral-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-neutral-700 border border-neutral-200 rounded-xl hover:bg-neutral-50 transition-colors disabled:opacity-50"
           >
             <Save size={15} />
             Simpan Draf
@@ -242,7 +257,7 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
               handleSubmit(onSubmit)()
             }}
             disabled={isSaving}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white rounded-xl transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white rounded-xl transition-colors shadow-sm disabled:opacity-50"
           >
             {isSaving ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
             {isSuperAdmin
@@ -266,130 +281,167 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
         </div>
       )}
 
+      {/* Info banner for new articles */}
+      {!isEditing && !isSuperAdmin && (
+        <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+          <Info size={16} className="text-blue-500 shrink-0 mt-0.5" />
+          <div className="text-sm text-blue-700">
+            <span className="font-semibold">Info:</span> Artikel akan ditinjau oleh Superadmin sebelum diterbitkan.
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Editor — 2/3 */}
+        {/* Main Editor — 2/3 */}
         <div className="lg:col-span-2 space-y-4">
-          {/* Title */}
-          <div>
+          {/* Title Section */}
+          <div className="bg-white rounded-2xl border border-neutral-150 p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-semibold text-neutral-700 flex items-center gap-1">
+                Judul Artikel <span className="text-error-500">*</span>
+              </label>
+              <span className="text-xs text-neutral-400">{title.length}/200 karakter</span>
+            </div>
             <input
               type="text"
-              placeholder="Judul artikel yang menarik…"
-              {...register('title', { onChange: handleTitleChange })}
-              className="w-full px-0 py-3 text-2xl lg:text-3xl font-extrabold text-neutral-900 placeholder-neutral-300 border-none outline-none bg-transparent font-heading"
+              placeholder="Masukkan judul artikel yang menarik dan informatif…"
+              {...register('title')}
+              className="w-full px-4 py-3 text-xl font-bold text-neutral-900 placeholder-neutral-300 border border-neutral-200 rounded-xl focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
             />
             {errors.title && (
               <p className="text-xs text-error-600 mt-1">{errors.title.message}</p>
             )}
           </div>
 
-          {/* Slug */}
-          <div className="flex items-center gap-2 pb-4 border-b border-neutral-150">
-            <span className="text-xs text-neutral-400">URL:</span>
-            <div className="flex-1">
-              <input
-                type="text"
-                placeholder="url-artikel-anda"
-                {...register('slug')}
-                className="w-full text-xs text-brand-600 bg-transparent border-none outline-none font-mono"
-              />
+          {/* URL/Slug Section */}
+          <div className="bg-white rounded-2xl border border-neutral-150 p-5">
+            <label className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
+              URL Artikel (Slug)
+              <span className="text-xs font-normal text-neutral-400">— Otomatis dari judul</span>
+            </label>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-sm text-neutral-400 bg-neutral-100 px-3 py-2 rounded-lg font-mono">
+                /artikel/
+              </span>
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  placeholder="url-artikel"
+                  {...register('slug')}
+                  onChange={handleSlugChange}
+                  disabled={slugLocked && !slugManuallyEdited}
+                  className={cn(
+                    'w-full px-4 py-2 text-sm font-mono border rounded-lg pr-10',
+                    slugLocked && !slugManuallyEdited
+                      ? 'bg-neutral-50 text-neutral-500 border-neutral-200'
+                      : 'bg-white text-brand-600 border-neutral-200 focus:border-brand-400 focus:ring-2 focus:ring-brand-100'
+                  )}
+                />
+                {!slugLocked && !slugManuallyEdited && (
+                  <button
+                    type="button"
+                    onClick={() => setSlugLocked(true)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-neutral-400 hover:text-neutral-600 transition-colors"
+                    title="Kunci slug"
+                  >
+                    <Check size={14} />
+                  </button>
+                )}
+                {(slugLocked || slugManuallyEdited) && (
+                  <button
+                    type="button"
+                    onClick={handleSlugEdit}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-neutral-400 hover:text-brand-600 transition-colors"
+                    title={slugManuallyEdited ? 'Slug diedit manual' : 'Buka kunci slug'}
+                  >
+                    <Pencil size={14} />
+                  </button>
+                )}
+              </div>
             </div>
+            <p className="text-xs text-neutral-400 mt-2">
+              {slugManuallyEdited ? 'Slug telah diedit secara manual' : 'Slug otomatis dibuat dari judul dan dapat diedit dengan klik ikon pensil'}
+            </p>
+            {errors.slug && (
+              <p className="text-xs text-error-600 mt-1">{errors.slug.message}</p>
+            )}
           </div>
 
-          {/* Excerpt */}
-          <div>
+          {/* Excerpt Section */}
+          <div className="bg-white rounded-2xl border border-neutral-150 p-5">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-semibold text-neutral-700">
+                Ringkasan (Excerpt)
+              </label>
+              <span className="text-xs text-neutral-400">Opsional</span>
+            </div>
             <textarea
               rows={2}
-              placeholder="Ringkasan singkat artikel (opsional, tampil di listing dan SEO)…"
+              placeholder="Tulis ringkasan singkat yang akan muncul di daftar artikel dan SEO…"
               {...register('excerpt')}
-              className="w-full px-0 py-2 text-base text-neutral-600 placeholder-neutral-300 border-none outline-none bg-transparent resize-none leading-relaxed"
+              className="w-full px-4 py-3 text-sm text-neutral-600 placeholder-neutral-300 border border-neutral-200 rounded-xl focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 resize-none transition-all"
             />
+            <p className="text-xs text-neutral-400 mt-1.5">
+              Ringkasan akan tampil di halaman daftar artikel dan membantu SEO.
+            </p>
           </div>
 
           {/* Photo uploader */}
-          <Controller
-            name="gallery_images"
-            control={control}
-            render={({ field }) => (
-              <ArticlePhotoUploader value={field.value ?? []} onChange={field.onChange} />
-            )}
-          />
+          <div className="bg-white rounded-2xl border border-neutral-150 p-5">
+            <Controller
+              name="gallery_images"
+              control={control}
+              render={({ field }) => (
+                <ArticlePhotoUploader value={field.value ?? []} onChange={field.onChange} />
+              )}
+            />
+          </div>
 
-          {/* TipTap Editor */}
-          <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
+          {/* Content Editor */}
+          <div className="bg-white rounded-2xl border border-neutral-150 overflow-hidden">
+            <div className="px-5 py-3 border-b border-neutral-150 bg-neutral-50">
+              <label className="text-sm font-semibold text-neutral-700 flex items-center gap-1">
+                Isi Artikel <span className="text-error-500">*</span>
+              </label>
+            </div>
+
             {/* Toolbar */}
-            <div className="flex flex-wrap items-center gap-1 p-3 border-b border-neutral-150 bg-neutral-50">
-              <ToolbarButton
-                onClick={() => editor?.chain().focus().toggleBold().run()}
-                active={editor?.isActive('bold')}
-                title="Bold"
-              >
+            <div className="flex flex-wrap items-center gap-1 p-3 border-b border-neutral-150">
+              <ToolbarButton onClick={() => editor?.chain().focus().toggleBold().run()} active={editor?.isActive('bold')} title="Bold">
                 <Bold size={15} />
               </ToolbarButton>
-              <ToolbarButton
-                onClick={() => editor?.chain().focus().toggleItalic().run()}
-                active={editor?.isActive('italic')}
-                title="Italic"
-              >
+              <ToolbarButton onClick={() => editor?.chain().focus().toggleItalic().run()} active={editor?.isActive('italic')} title="Italic">
                 <Italic size={15} />
               </ToolbarButton>
-              <ToolbarButton
-                onClick={() => editor?.chain().focus().toggleUnderline().run()}
-                active={editor?.isActive('underline')}
-                title="Underline"
-              >
+              <ToolbarButton onClick={() => editor?.chain().focus().toggleUnderline().run()} active={editor?.isActive('underline')} title="Underline">
                 <UnderlineIcon size={15} />
               </ToolbarButton>
               <div className="w-px h-5 bg-neutral-200 mx-1" />
-              <ToolbarButton
-                onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
-                active={editor?.isActive('heading', { level: 2 })}
-                title="Heading 2"
-              >
+              <ToolbarButton onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} active={editor?.isActive('heading', { level: 2 })} title="Heading 2">
                 <Heading2 size={15} />
               </ToolbarButton>
-              <ToolbarButton
-                onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
-                active={editor?.isActive('heading', { level: 3 })}
-                title="Heading 3"
-              >
+              <ToolbarButton onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()} active={editor?.isActive('heading', { level: 3 })} title="Heading 3">
                 <Heading3 size={15} />
               </ToolbarButton>
               <div className="w-px h-5 bg-neutral-200 mx-1" />
-              <ToolbarButton
-                onClick={() => editor?.chain().focus().toggleBulletList().run()}
-                active={editor?.isActive('bulletList')}
-                title="Bullet list"
-              >
+              <ToolbarButton onClick={() => editor?.chain().focus().toggleBulletList().run()} active={editor?.isActive('bulletList')} title="Bullet list">
                 <List size={15} />
               </ToolbarButton>
-              <ToolbarButton
-                onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-                active={editor?.isActive('orderedList')}
-                title="Ordered list"
-              >
+              <ToolbarButton onClick={() => editor?.chain().focus().toggleOrderedList().run()} active={editor?.isActive('orderedList')} title="Numbered list">
                 <ListOrdered size={15} />
               </ToolbarButton>
-              <ToolbarButton
-                onClick={() => editor?.chain().focus().toggleBlockquote().run()}
-                active={editor?.isActive('blockquote')}
-                title="Blockquote"
-              >
+              <ToolbarButton onClick={() => editor?.chain().focus().toggleBlockquote().run()} active={editor?.isActive('blockquote')} title="Quote">
                 <Quote size={15} />
               </ToolbarButton>
               <div className="w-px h-5 bg-neutral-200 mx-1" />
-              <ToolbarButton
-                onClick={() => editor?.chain().focus().setTextAlign('left').run()}
-                active={editor?.isActive({ textAlign: 'left' })}
-                title="Align left"
-              >
+              <ToolbarButton onClick={() => editor?.chain().focus().setTextAlign('left').run()} active={editor?.isActive({ textAlign: 'left' })} title="Align left">
                 <AlignLeft size={15} />
               </ToolbarButton>
-              <ToolbarButton
-                onClick={() => editor?.chain().focus().setTextAlign('center').run()}
-                active={editor?.isActive({ textAlign: 'center' })}
-                title="Align center"
-              >
+              <ToolbarButton onClick={() => editor?.chain().focus().setTextAlign('center').run()} active={editor?.isActive({ textAlign: 'center' })} title="Align center">
                 <AlignCenter size={15} />
+              </ToolbarButton>
+              <ToolbarButton onClick={() => editor?.chain().focus().setTextAlign('right').run()} active={editor?.isActive({ textAlign: 'right' })} title="Align right">
+                <AlignRight size={15} />
               </ToolbarButton>
             </div>
 
@@ -402,13 +454,15 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
 
         {/* Sidebar — 1/3 */}
         <div className="space-y-5">
-          {/* Publish settings */}
+          {/* Publish Settings */}
           <div className="bg-white rounded-2xl border border-neutral-150 p-5 space-y-4">
             <h3 className="text-sm font-bold text-neutral-900 font-heading">Pengaturan Publikasi</h3>
 
             {/* Category */}
             <div>
-              <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Kategori</label>
+              <label className="block text-xs font-semibold text-neutral-600 mb-1.5 flex items-center gap-1">
+                Kategori <span className="text-error-500">*</span>
+              </label>
               <select
                 {...register('category_id')}
                 className="w-full h-10 px-3 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
@@ -418,16 +472,20 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </select>
+              {errors.category_id && <p className="text-xs text-error-600 mt-1">{errors.category_id.message}</p>}
             </div>
 
             {/* Publish date */}
             <div>
-              <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Tanggal Terbit</label>
+              <label className="block text-xs font-semibold text-neutral-600 mb-1.5">
+                Tanggal Terbit
+              </label>
               <input
                 type="datetime-local"
                 {...register('published_at')}
                 className="w-full h-10 px-3 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
               />
+              <p className="text-xs text-neutral-400 mt-1.5">Kosongkan untuk terbitkan segera</p>
             </div>
 
             {/* Featured */}
@@ -465,7 +523,6 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
           {/* Tags */}
           <div className="bg-white rounded-2xl border border-neutral-150 p-5">
             <h3 className="text-sm font-bold text-neutral-900 mb-3 font-heading">Tag Artikel</h3>
-            {/* Tag input */}
             <div className="flex gap-2 mb-3">
               <input
                 type="text"
@@ -503,78 +560,73 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
           </div>
 
           {/* Event Settings - only show for Kegiatan category */}
-          {(() => {
-            const selectedCategory = categories.find((cat) => cat.id === categoryId)
-            const isEventCategory = selectedCategory?.name.toLowerCase() === 'kegiatan'
-            if (!isEventCategory) return null
-            return (
-              <div className="bg-white rounded-2xl border border-neutral-150 p-5 space-y-4">
-                <h3 className="text-sm font-bold text-neutral-900 font-heading flex items-center gap-2">
-                  <Calendar size={16} className="text-brand-600" />
-                  Informasi Kegiatan
-                </h3>
+          {isEventCategory && (
+            <div className="bg-white rounded-2xl border border-neutral-150 p-5 space-y-4">
+              <h3 className="text-sm font-bold text-neutral-900 font-heading flex items-center gap-2">
+                <Calendar size={16} className="text-brand-600" />
+                Informasi Kegiatan
+              </h3>
 
-                {/* Event Date */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Tanggal Mulai</label>
-                    <input
-                      type="date"
-                      {...register('event_date')}
-                      className="w-full h-9 px-3 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Tanggal Selesai</label>
-                    <input
-                      type="date"
-                      {...register('event_end_date')}
-                      className="w-full h-9 px-3 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* Event Time */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-600 mb-1.5 flex items-center gap-1.5">
-                      <Clock size={14} />
-                      Waktu Mulai
-                    </label>
-                    <input
-                      type="time"
-                      {...register('event_time')}
-                      className="w-full h-9 px-3 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Waktu Selesai</label>
-                    <input
-                      type="time"
-                      {...register('event_end_time')}
-                      className="w-full h-9 px-3 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* Event Location */}
+              {/* Event Date */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-600 mb-1.5 flex items-center gap-1.5">
-                    <MapPin size={14} />
-                    Lokasi
-                  </label>
+                  <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Tanggal Mulai</label>
                   <input
-                    type="text"
-                    placeholder="Contoh: Aula Serbaguna, Gedung Pusat..."
-                    {...register('event_location')}
+                    type="date"
+                    {...register('event_date')}
+                    className="w-full h-9 px-3 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Tanggal Selesai</label>
+                  <input
+                    type="date"
+                    {...register('event_end_date')}
                     className="w-full h-9 px-3 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
                   />
                 </div>
               </div>
-            )
-          })()}
 
-          {/* SEO */}
+              {/* Event Time */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-neutral-600 mb-1.5 flex items-center gap-1.5">
+                    <Clock size={14} />
+                    Waktu Mulai
+                  </label>
+                  <input
+                    type="time"
+                    {...register('event_time')}
+                    className="w-full h-9 px-3 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Waktu Selesai</label>
+                  <input
+                    type="time"
+                    {...register('event_end_time')}
+                    className="w-full h-9 px-3 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Event Location */}
+              <div>
+                <label className="text-xs font-semibold text-neutral-600 mb-1.5 flex items-center gap-1.5">
+                  <MapPin size={14} />
+                  Lokasi
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Aula Serbaguna, Gedung Pusat..."
+                  {...register('event_location')}
+                  className="w-full h-9 px-3 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* SEO Settings */}
           <div className="bg-white rounded-2xl border border-neutral-150 p-5 space-y-3">
             <h3 className="text-sm font-bold text-neutral-900 font-heading">SEO</h3>
             <div>
@@ -592,7 +644,7 @@ export function ArticleEditorPage({ categories, article, userRole }: ArticleEdit
                 rows={3}
                 placeholder="Deskripsi singkat untuk mesin pencari"
                 {...register('meta_description')}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all resize-none"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-neutral-200 bg-white focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 resize-none transition-all"
               />
             </div>
           </div>

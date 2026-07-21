@@ -10,7 +10,7 @@ export const articleSchema = z.object({
   cover_image_alt: z.string().max(200).optional().default(''),
   category_id: z.string().uuid('Pilih kategori yang valid').optional().or(z.literal('')),
   tags: z.array(z.string().min(1).max(50)).max(10, 'Maksimal 10 tag').default([]),
-  status: z.enum(['draft', 'pending_review', 'published', 'archived']).default('draft'),
+  status: z.enum(['draft', 'pending_review', 'published', 'archived', 'rejected']).default('draft'),
   is_featured: z.boolean().default(false),
   meta_title: z.string().max(70, 'Meta title maksimal 70 karakter').optional().default(''),
   meta_description: z.string().max(160, 'Meta description maksimal 160 karakter').optional().default(''),
@@ -26,7 +26,7 @@ export const articleSchema = z.object({
 
 // Simplified schema for status-only updates
 export const articleStatusSchema = z.object({
-  status: z.enum(['draft', 'pending_review', 'published', 'archived']),
+  status: z.enum(['draft', 'pending_review', 'published', 'archived', 'rejected']),
 })
 
 export type ArticleFormData = z.infer<typeof articleSchema>

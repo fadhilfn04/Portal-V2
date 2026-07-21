@@ -17,10 +17,31 @@ export async function GET(req: NextRequest) {
   const supabase = await createClient()
   const offset = (page - 1) * limit
 
+  // Authorization check: only logged-in users can filter by non-published status
+  let effectiveStatus = status
+  if (status !== 'published') {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      // Unauthenticated users can only see published articles
+      effectiveStatus = 'published'
+    } else {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      // Only admin, super_admin, and editor can view non-published articles
+      if (!profile || !['admin', 'super_admin', 'editor'].includes(profile.role)) {
+        effectiveStatus = 'published'
+      }
+    }
+  }
+
   let query = supabase
     .from('articles_with_author')
     .select('*', { count: 'exact' })
-    .eq('status', status)
+    .eq('status', effectiveStatus)
     .order('published_at', { ascending: false })
     .range(offset, offset + limit - 1)
 
@@ -84,6 +105,12 @@ export async function POST(req: NextRequest) {
       author_id: profile.id,
       published_at: effectiveStatus === 'published'
         ? articleData.published_at || new Date().toISOString()
+        : null,
+      approved_at: effectiveStatus === 'published' && profile.role === 'super_admin'
+        ? new Date().toISOString()
+        : null,
+      approved_by: effectiveStatus === 'published' && profile.role === 'super_admin'
+        ? profile.id
         : null,
     })
     .select()

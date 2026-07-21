@@ -9,13 +9,13 @@ export default async function CommentsPage() {
 
   const { data: pending } = await supabase
     .from('comments')
-    .select('*, articles(title, slug)')
+    .select('*, articles(title, slug, status)')
     .eq('status', 'pending')
     .order('created_at', { ascending: false })
 
   const { data: approved } = await supabase
     .from('comments')
-    .select('*, articles(title, slug)')
+    .select('*, articles(title, slug, status)')
     .eq('status', 'approved')
     .order('created_at', { ascending: false })
     .limit(20)

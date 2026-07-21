@@ -13,7 +13,7 @@ interface CommentWithArticle {
   content: string
   status: string
   created_at: string
-  articles: { title: string; slug: string } | null
+  articles: { title: string; slug: string; status: string } | null
 }
 
 interface CommentsModerator {
@@ -152,14 +152,20 @@ function CommentCard({
       {comment.articles && (
         <div className="flex items-center gap-1.5 mb-3 text-xs">
           <span className="text-neutral-400">Pada artikel:</span>
-          <a
-            href={`/artikel/${comment.articles.slug}`}
-            target="_blank"
-            className="font-medium text-brand-600 hover:text-brand-700 flex items-center gap-1"
-          >
-            {comment.articles.title.slice(0, 60)}…
-            <ExternalLink size={10} />
-          </a>
+          {comment.articles.status === 'published' ? (
+            <a
+              href={`/artikel/${comment.articles.slug}`}
+              target="_blank"
+              className="font-medium text-brand-600 hover:text-brand-700 flex items-center gap-1"
+            >
+              {comment.articles.title.slice(0, 60)}…
+              <ExternalLink size={10} />
+            </a>
+          ) : (
+            <span className="font-medium text-neutral-500">
+              {comment.articles.title.slice(0, 60)}… (belum diterbitkan)
+            </span>
+          )}
         </div>
       )}
 

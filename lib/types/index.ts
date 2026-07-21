@@ -3,7 +3,7 @@
 // ============================================================
 
 export type UserRole = 'super_admin' | 'admin' | 'editor' | 'viewer'
-export type ArticleStatus = 'draft' | 'published' | 'archived'
+export type ArticleStatus = 'draft' | 'pending_review' | 'published' | 'archived' | 'rejected'
 export type CommentStatus = 'pending' | 'approved' | 'rejected'
 export type BroadcastStatus = 'queued' | 'processing' | 'sent' | 'failed' | 'cancelled'
 export type BroadcastGateway = 'manual' | 'fonnte' | 'waha' | 'whapi' | 'meta'

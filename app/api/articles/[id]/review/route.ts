@@ -38,8 +38,19 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const updates =
     action === 'approve'
-      ? { status: 'published', published_at: new Date().toISOString(), rejection_reason: null }
-      : { status: 'draft', rejection_reason: reason ?? 'Artikel ditolak.' }
+      ? {
+          status: 'published',
+          published_at: new Date().toISOString(),
+          approved_at: new Date().toISOString(),
+          approved_by: user.id,
+          rejection_reason: null
+        }
+      : {
+          status: 'rejected',
+          approved_at: null,
+          approved_by: null,
+          rejection_reason: reason ?? 'Artikel ditolak.'
+        }
 
   const { data: article, error } = await supabase
     .from('articles')

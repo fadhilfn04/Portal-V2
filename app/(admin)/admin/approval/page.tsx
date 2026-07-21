@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ClipboardCheck, Eye, Calendar, ExternalLink } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
@@ -87,15 +86,11 @@ export default async function ApprovalPage() {
                   )}
                 </div>
 
-                {/* Preview link */}
-                <Link
-                  href={`/artikel/${article.slug}`}
-                  target="_blank"
-                  className="flex items-center gap-1.5 shrink-0 text-xs text-brand-600 hover:text-brand-700 font-medium transition-colors"
-                >
+                {/* Preview link - disabled for pending articles */}
+                <div className="flex items-center gap-1.5 shrink-0 text-xs text-neutral-300">
                   <ExternalLink size={13} />
-                  Preview
-                </Link>
+                  <span>Preview tersedia setelah disetujui</span>
+                </div>
               </div>
 
               {/* Meta row */}
